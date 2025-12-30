@@ -1,7 +1,6 @@
 package io.github.lv
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.audio.Music
@@ -11,6 +10,11 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.viewport.FitViewport
+import io.github.lv.gameUnit.GameUnit
+import io.github.lv.gameUnit.Shaman
+import io.github.lv.gameUnit.UnitDrawDebugDecorator
+import io.github.lv.tileMap.MapInputProcessor
+import io.github.lv.tileMap.TileMap
 
 class GameScreen(private val game: RingWorldGame) : ScreenAdapter() {
     var music: Music? = null
@@ -18,11 +22,14 @@ class GameScreen(private val game: RingWorldGame) : ScreenAdapter() {
     private var stage: Stage? = null
     val camera = OrthographicCamera(800f, 600f)  // 创建一个摄像机
 
-    val units = Units(game, camera)
+    val shaman = Shaman(game)
     val viewport by lazy { FitViewport(Constant.ViewportWidth, Constant.ViewportHeight, camera) }
     private val tileMap = TileMap(game, camera)
-    private val mapInputProcessor = MapInputProcessor(camera, viewport)
+    private val mapInputProcessor = MapInputProcessor(camera, viewport, shaman)
     private val multiplexer = InputMultiplexer()        // 创建多重输入处理器
+    // 现在使用装饰器包装:
+    val decoratedShaman = UnitDrawDebugDecorator(shaman,  game, camera)
+
     override fun show() {
 //        stage = Stage(viewport)
 //        stage?.isDebugAll = true
@@ -38,7 +45,8 @@ class GameScreen(private val game: RingWorldGame) : ScreenAdapter() {
         camera.update()
         game.batch.projectionMatrix = viewport.camera.combined
         tileMap.draw()
-        units.draw()
+//        shaman.draw()
+        decoratedShaman.draw()
     }
 
     override fun resize(width: Int, height: Int) {
