@@ -10,8 +10,12 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.viewport.FitViewport
-import io.github.lv.gameUnit.GameUnit
+import io.github.lv.extension.getCenterX
+import io.github.lv.extension.getCenterY
 import io.github.lv.gameUnit.Shaman
+import io.github.lv.gameUnit.UnitController.getGridPosition
+import io.github.lv.gameUnit.UnitController.moveToTarget
+import io.github.lv.gameUnit.UnitController.updateFollowPath
 import io.github.lv.gameUnit.UnitDrawDebugDecorator
 import io.github.lv.tileMap.MapInputProcessor
 import io.github.lv.tileMap.TileMap
@@ -25,10 +29,11 @@ class GameScreen(private val game: RingWorldGame) : ScreenAdapter() {
     val shaman = Shaman(game)
     val viewport by lazy { FitViewport(Constant.ViewportWidth, Constant.ViewportHeight, camera) }
     private val tileMap = TileMap(game, camera)
-    private val mapInputProcessor = MapInputProcessor(camera, viewport, shaman)
+    private val mapInputProcessor = MapInputProcessor(camera, viewport, shaman, tileMap)
     private val multiplexer = InputMultiplexer()        // 创建多重输入处理器
+
     // 现在使用装饰器包装:
-    val decoratedShaman = UnitDrawDebugDecorator(shaman,  game, camera)
+    val decoratedShaman = UnitDrawDebugDecorator(shaman, camera)
 
     override fun show() {
 //        stage = Stage(viewport)
@@ -40,6 +45,34 @@ class GameScreen(private val game: RingWorldGame) : ScreenAdapter() {
     }
 
     override fun render(delta: Float) {
+        input()
+        logic(delta)
+        draw()
+    }
+
+    override fun resize(width: Int, height: Int) {
+        viewport.update(width, height, true)
+        stage?.viewport?.update(width, height, true) // 更新stage视图
+    }
+
+    fun input() {
+
+    }
+
+    fun logic(delta: Float) {
+        getGridPosition(shaman.unitSprite.getCenterX(), shaman.unitSprite.getCenterY()).also { pos ->
+            shaman.gridX = pos.first
+            shaman.gridY = pos.second
+        }
+        try {
+            updateFollowPath(shaman, delta)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+//        moveToTarget(shaman, shaman.moveTarget.x,shaman.moveTarget.y,delta, 3f)
+    }
+
+    fun draw() {
         // 清空屏幕
         ScreenUtils.clear(Color.BLACK)
         camera.update()
@@ -47,11 +80,6 @@ class GameScreen(private val game: RingWorldGame) : ScreenAdapter() {
         tileMap.draw()
 //        shaman.draw()
         decoratedShaman.draw()
-    }
-
-    override fun resize(width: Int, height: Int) {
-        viewport.update(width, height, true)
-        stage?.viewport?.update(width, height, true) // 更新stage视图
     }
 
     override fun hide() {

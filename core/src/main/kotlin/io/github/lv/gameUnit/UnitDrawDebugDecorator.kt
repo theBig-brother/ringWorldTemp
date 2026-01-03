@@ -3,20 +3,14 @@ package io.github.lv.gameUnit
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
-import com.badlogic.gdx.graphics.g2d.Sprite
-import io.github.lv.RingWorldGame
 
 class UnitDrawDebugDecorator(
     private val unit: GameUnit,
-    override val game: RingWorldGame,
     val camera: OrthographicCamera,
-) : GameUnit() {
-    override val unitTexture: Texture by lazy { unit.unitTexture }
-    override val unitSprite: Sprite by lazy { unit.unitSprite }
+)  {
     val shapeRenderer = ShapeRenderer()
-    override fun draw() {
+     fun draw() {
         // 调用原有的绘制方法
         unit.draw()
         // 启用ShapeRenderer
@@ -35,7 +29,7 @@ class UnitDrawDebugDecorator(
         if (Gdx.input.isKeyPressed(Input.Keys.Q)) {
             val unitX = unit.unitSprite.x
             val unitY = unit.unitSprite.y
-            val po = UnitController.getGridPosition(unitX, unitY, false)
+            val po = UnitController.getGridPosition(unitX, unitY, true)
             println(po)
         }
 

@@ -4,13 +4,21 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.math.GridPoint2
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.viewport.FitViewport
+import io.github.lv.extension.getCenter
+import io.github.lv.extension.getCenterX
 import io.github.lv.gameUnit.GameUnit
 import io.github.lv.gameUnit.UnitController
-class MapInputProcessor(private val camera: OrthographicCamera, private val viewport: FitViewport,  private val units: GameUnit) : InputProcessor {
 
+class MapInputProcessor(
+    private val camera: OrthographicCamera,
+    private val viewport: FitViewport,
+    private val units: GameUnit,
+    private val tileMap: TileMap
+) : InputProcessor {
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
         // 获取鼠标在世界坐标中的位置
         val screenX = Gdx.input.x.toFloat()
@@ -46,13 +54,30 @@ class MapInputProcessor(private val camera: OrthographicCamera, private val view
             // 获取鼠标在世界坐标中的位置
             val worldX = viewport.unproject(Vector2(screenX.toFloat(), screenY.toFloat())).x
             val worldY = viewport.unproject(Vector2(screenX.toFloat(), screenY.toFloat())).y
-println("rightClick: $worldX, $worldY")
+//            println("rightClick: $worldX, $worldY")
             // 将鼠标位置转换为格子坐标
-            val (gridX, gridY) = UnitController.getGridPosition(worldX, worldY)
+            val (targetGridX, targetGridY) = UnitController.getGridPosition(worldX, worldY)
+            print("rightClick: $targetGridX, $targetGridY ")
+            if (tileMap.graph.inBounds(targetGridY, targetGridX)) {
+// 单位寻路
+                if (tileMap.findPath.findPathNode(
+                        tileMap.mapMatrix[units.gridY][units.gridX],
+                        tileMap.mapMatrix[targetGridY][targetGridX],
+                        units.currentPath
+                    )
+                ) {
+                    units.pathIndex = 0
+                    for (i in units.currentPath) {
+                        print("Grid(:${i.i},${i.j}) ")
+                    }
+                    println()
+                }
 
 
-            // 将萨满移动到对应的格子
-//            units.placeShamanOnGrid(gridX, gridY)
+            }
+
+
+//            units.moveTarget = GridPoint2(targetGridX, targetGridY)
             return true
         }
         return false
