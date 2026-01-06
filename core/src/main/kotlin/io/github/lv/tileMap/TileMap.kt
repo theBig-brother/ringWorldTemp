@@ -2,102 +2,180 @@ package io.github.lv.tileMap
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath
-import com.badlogic.gdx.ai.pfa.GraphPath
-import com.badlogic.gdx.ai.pfa.indexed.IndexedAStarPathFinder
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Texture
-import io.github.lv.Constant
+import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
+import io.github.lv.Constant.TILE_PX
 import io.github.lv.RingWorldGame
-import com.badlogic.gdx.utils.Array
+import io.github.lv.io.github.lv.ui.GameAssets.texture
+import java.io.File
+import kotlin.String
 
 class TileMap(private val game: RingWorldGame, private val camera: OrthographicCamera) {
-    val grassTexture: Texture by lazy { Texture("images/terrain/semi-dry.png") }
-    val pinkTexture: Texture by lazy { Texture("images/terrain/reach.png") }
-    val waterTexture: Texture by lazy { Texture("images/terrain/coast-tile.png") }
-    val beachTexture: Texture by lazy { Texture("images/terrain/beach.png") }
     val cobblesTexture: Texture by lazy { Texture("images/terrain/cobbles-keep.png") }
-    val HEIGHT = 10
-    val WIDTH = 10
-    val mapMatrix = Array(HEIGHT) { Array<TileNode?>(WIDTH) { null } }
-    val graph = Graph(mapMatrix)
-    val findPath = FindPath(graph)
+    var mapHeight: Int = 0 // 地图总行数
+    var mapWidth: Int = 0
+    var mapMatrix: Array<Array<TileNode?>> = arrayOf()
+    var findPath: FindPath? = null
 
     init {
-        var a = 0
-        for (i in 0 until mapMatrix.size) {
-            for (j in 0 until mapMatrix[i].size) {
-                mapMatrix[i][j] = TileNode(i, j, i * WIDTH + j)
-
+        val rows: List<List<String>> = csvReader().readAll(File("Home_1.csv"))
+        // rows[0] 就是第一行；rows[0][0] 就是第一行第一列
+        mapHeight = rows.size
+        mapWidth = rows.firstOrNull()?.size ?: 0
+        mapMatrix = Array(mapHeight) { arrayOfNulls(mapWidth) }
+        for (i in rows.indices) {
+            for (j in rows[i].indices) {
+                mapMatrix[i][j] = TileNode(j, i, i * mapWidth + j)
+                mapMatrix[i][j]?.string =  rows[i][j].trim().takeIf { it.contains('^') }?.substringBefore('^') ?: rows[i][j].trim()
+                mapMatrix[i][j]?.nodeTexture =
+                    texture(path = "images/terrain/" + game.terrainSymbol[mapMatrix[i][j]?.string] + ".png")
             }
         }
-        //测试用，会删除
-        for (i in 0 until mapMatrix.size) {
-            for (j in 0 until mapMatrix[i].size) {
-                if (i % 2 == 0 && j % 2 == 0) {
-                    mapMatrix[i][j]?.let { it.nodeTexture = grassTexture }
-                } else if (i % 2 == 0 && j % 2 == 1) {
-                    mapMatrix[i][j]?.let { it.nodeTexture = pinkTexture }
-                } else if (i % 2 == 1 && j % 2 == 0) {
-                    mapMatrix[i][j]?.let { it.nodeTexture = waterTexture }
-                } else {
-                    mapMatrix[i][j]?.let { it.nodeTexture = beachTexture }
-                }
-            }
-        }
+        val graph = Graph(mapMatrix)
+        findPath = FindPath(graph)
     }
 
-
     // draw map
-    fun draw() {
-        handleInput()
+    fun draw(delta: Float) {
+        handleInput(delta)
+        clampCamera()
         game.batch.begin()
-        for (i in 0 until HEIGHT) {
-            for (j in 0 until WIDTH) {
-                try {
-                    // 可能出错的代码
-                    mapMatrix[i][j]?.let {
-                        game.batch.draw(
-                            it.nodeTexture,
-                            j * Constant.hexWidth * 0.75f,
-                            i * Constant.hexHeight - (j % 2) * Constant.hexHeight / 2,
-                            Constant.hexWidth,
-                            Constant.hexHeight
-                        )
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
+        for (i in 0 until mapHeight) {
+            for (j in 0 until mapWidth) {
+                mapMatrix[i][j]?.let {
+                    val renderI = mapHeight - 1 - i
+                    game.batch.draw(
+                        it.nodeTexture,
+                        j * TILE_PX * 0.75f,
+                        renderI * TILE_PX - (j % 2) * TILE_PX / 2,
+                        TILE_PX,
+                        TILE_PX
+                    )
                 }
             }
         }
         game.batch.end()
     }
 
-    fun handleInput() {
-        val speedKey = 1f
+    val mapWorldWidth = mapWidth * TILE_PX * 0.75f
+    val mapWorldHeight = mapHeight * TILE_PX
+    fun clampCamera() {
+        // 1. 计算相机的可视窗口半宽/半高
+        val halfViewWidth = camera.viewportWidth * camera.zoom / 2f
+        val halfViewHeight = camera.viewportHeight * camera.zoom / 2f
+
+        // 2. 限制的范围：相机中心点不能超出这些范围
+        // 计算相机中心点允许的最大/最小值
+//        val minX = halfViewWidth          // 最小X（允许左边界在这里）
+//        val maxX = mapWorldWidth - halfViewWidth // 最大X（允许右边界在这里）
+//        val minY = halfViewHeight        // 最小Y（允许下边界在这里）
+//        val maxY = mapWorldHeight - halfViewHeight // 最大Y（允许上边界在这里）
+        val minX = 0f          // 最小X（允许左边界在这里）
+        val maxX = mapWorldWidth  // 最大X（允许右边界在这里）
+        val minY = 0f        // 最小Y（允许下边界在这里）
+        val maxY = mapWorldHeight  // 最大Y（允许上边界在这里）
+
+        // 3. 如果地图小于视口，直接将相机固定在地图的中心
+        // 如果地图宽度或高度小于视口宽度或高度，中心点应该保持在地图的中心
+        if (mapWorldWidth <= camera.viewportWidth * camera.zoom) {
+            camera.position.x = mapWorldWidth / 2f
+        } else {
+            // 否则将相机位置限制在允许的范围内
+            camera.position.x = camera.position.x.coerceIn(minX, maxX)
+        }
+
+        if (mapWorldHeight <= camera.viewportHeight * camera.zoom) {
+            camera.position.y = mapWorldHeight / 2f
+        } else {
+            camera.position.y = camera.position.y.coerceIn(minY, maxY)
+        }
+    }
+
+    /*
+    * 如果你下一步要做：
+
+    边缘滚屏（鼠标贴边自动移动）
+
+    Shift 加速 / 惯性平滑
+
+    minimap 点击跳转相机
+
+    相机缓动（文明那种
+    * */
+    fun handleInput(delta: Float) {
+
+        val speedKey = 10f * TILE_PX
+        val distKey = delta * speedKey
         //左移相机
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            camera.translate(-speedKey, 0f, 0f);
+            camera.translate(-distKey, 0f, 0f)
         }
         //右移相机
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            camera.translate(speedKey, 0f, 0f);
+            camera.translate(distKey, 0f, 0f)
         }
         //下移相机
         if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            camera.translate(0f, -speedKey, 0f);
+            camera.translate(0f, -distKey, 0f)
         }
         //上移相机
         if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            camera.translate(0f, speedKey, 0f);
+            camera.translate(0f, distKey, 0f)
         }
         //https://developer.aliyun.com/article/1619479
         // 鼠标中键拖拽地图
         if (Gdx.input.isButtonPressed(Input.Buttons.MIDDLE)) {
-            val speedMiddle = 0.05f
-            val deltaX = -Gdx.input.deltaX * camera.zoom * speedMiddle
-            val deltaY = Gdx.input.deltaY * camera.zoom * speedMiddle
+
+//            val distMiddle = delta * 1f* TILE_PX不要自作聪明写这行
+            val deltaX = -Gdx.input.deltaX * camera.zoom
+            val deltaY = Gdx.input.deltaY * camera.zoom
             camera.translate(deltaX, deltaY, 0f)
         }
     }
+
+    // 地图行 -> 渲染行（翻转）
+    private fun toRenderRow(mapY: Int): Int = (mapHeight - 1 - mapY)
+
+    // 渲染行 -> 地图行（翻转回去）
+    private fun toMapI(renderRow: Int): Int = (mapHeight - 1 - renderRow)
+
+    // 将六边形网格坐标转换为像素坐标
+    fun mapToWorld(
+        mapX: Int,  // 列（x）
+        mapY: Int, // 行（y，向下）
+        center: Boolean = true
+    ): Pair<Float, Float> {
+        val renderRow = toRenderRow(mapY)  // ⭐ 关键翻转
+        return if (center) {
+            val x = mapX * TILE_PX * 0.75f + TILE_PX / 2f
+            val y = renderRow * TILE_PX -
+                (mapX % 2) * TILE_PX / 2f +
+                TILE_PX / 2f
+            x to y
+        } else {
+            val x = mapX * TILE_PX * 0.75f
+            val y = renderRow * TILE_PX -
+                (mapX % 2) * TILE_PX / 2f
+            x to y
+        }
+    }
+    // 根据单位的屏幕坐标获取所在的六边形网格坐标
+    /** 世界坐标 -> 地图格子（用于鼠标点选或人物位置） */
+    fun worldToMap(worldX: Float, worldY: Float): Pair<Int, Int> {
+        /*中心到左下角的偏移量在传入前计算
+        *  计算网格坐标
+        *  计算x坐标对应的网格列数，并四舍五入
+        * */
+        val mapX = (worldX / (TILE_PX * 0.75f)).toInt()
+        // 计算y坐标对应的网格行数，偶数列需要偏移调整，并四舍五入
+        // 偶数列和奇数列的偏移差异
+        val renderRow = ((worldY + (mapX % 2) * TILE_PX / 2f) / TILE_PX).toInt()
+        val mapY = toMapI(renderRow)
+        return mapX to mapY
+    }
+
+    /** 边界检查也放这儿，别散落在各处 */
+    fun inBounds(mapX: Int, mapY: Int): Boolean =
+        mapX in 0 until mapWidth && mapY in 0 until mapHeight
 }

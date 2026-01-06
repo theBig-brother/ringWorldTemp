@@ -162,3 +162,8 @@ Thumbs.db
 ## You could also add that configuration to the text in nativeimage.gradle .
 ## You should delete or comment out the next line if you have configuration in a different resource-config.json .
 **/resource-config.json
+
+#资源图片，未来可能会改，暂时不提交。
+/assets/images/
+/assets/data/
+/assets/terrain-graphics/

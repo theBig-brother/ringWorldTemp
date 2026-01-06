@@ -1,23 +1,26 @@
 package io.github.lv.tileMap
 
+import com.badlogic.ashley.core.Engine
+import com.badlogic.ashley.core.Entity
+import com.badlogic.ashley.core.Family
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.math.GridPoint2
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.utils.viewport.FitViewport
-import io.github.lv.extension.getCenter
-import io.github.lv.extension.getCenterX
-import io.github.lv.gameUnit.GameUnit
-import io.github.lv.gameUnit.UnitController
+import com.badlogic.gdx.utils.viewport.Viewport
+import io.github.lv.gameUnit.AppearanceComponent
+import io.github.lv.gameUnit.MovementComponent
+
 
 class MapInputProcessor(
-    private val camera: OrthographicCamera,
-    private val viewport: FitViewport,
-    private val units: GameUnit,
-    private val tileMap: TileMap
+    val camera: OrthographicCamera,
+    val viewport: Viewport,
+    val tileMap: TileMap,
+    val gameEngine: Engine,
+    val getSelectedUnit: () -> Entity?,
+    val onSelect: (Entity?) -> Unit
 ) : InputProcessor {
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
         // 获取鼠标在世界坐标中的位置
@@ -46,47 +49,72 @@ class MapInputProcessor(
         return true
     }
 
-    // 其他 InputProcessor 方法的实现（不做处理，返回 false）
-    override fun keyDown(keycode: Int): Boolean = false
-    override fun keyUp(keycode: Int): Boolean = false
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+        if (button == Input.Buttons.LEFT) {
+
+            val world = viewport.unproject(Vector2(screenX.toFloat(), screenY.toFloat()))
+            val entities = gameEngine.getEntitiesFor(
+                Family.all(AppearanceComponent::class.java, MovementComponent::class.java).get()
+            )
+//            val clicked = units.firstOrNull { unit ->
+//                unit.hitTest(world.x, world.y)
+//            }
+//            println("clicked !")
+            val clicked = entities.firstOrNull { entity ->
+                val appearance: AppearanceComponent = entity.getComponent(AppearanceComponent::class.java)
+                val unitSprite = appearance.unitSprite
+                unitSprite.boundingRectangle.contains(world.x, world.y)
+            }
+            println("clicked !")
+            println("clicked ${clicked}")
+            onSelect(clicked)
+            return true
+        }
         if (button == Input.Buttons.RIGHT) { // 右键
             // 获取鼠标在世界坐标中的位置
             val worldX = viewport.unproject(Vector2(screenX.toFloat(), screenY.toFloat())).x
             val worldY = viewport.unproject(Vector2(screenX.toFloat(), screenY.toFloat())).y
 //            println("rightClick: $worldX, $worldY")
             // 将鼠标位置转换为格子坐标
-            val (targetGridX, targetGridY) = UnitController.getGridPosition(worldX, worldY)
+//            val (targetGridX, targetGridY) = UnitController.getGridPosition(worldX, worldY)
+            val (targetGridX, targetGridY) = tileMap.worldToMap(worldX, worldY)
             print("rightClick: $targetGridX, $targetGridY ")
-            if (tileMap.graph.inBounds(targetGridY, targetGridX)) {
+// 对 unit 寻路/下命令
+            val entity = getSelectedUnit() ?: return true
+            if (tileMap.inBounds(targetGridY, targetGridX)) {
 // 单位寻路
-                if (tileMap.findPath.findPathNode(
-                        tileMap.mapMatrix[units.gridY][units.gridX],
-                        tileMap.mapMatrix[targetGridY][targetGridX],
-                        units.currentPath
-                    )
-                ) {
-                    units.pathIndex = 0
-                    for (i in units.currentPath) {
-                        print("Grid(:${i.i},${i.j}) ")
+                val appearanceComponent: AppearanceComponent = entity.getComponent(AppearanceComponent::class.java)
+                val position = appearanceComponent.position
+                val movementComponent: MovementComponent = entity.getComponent(MovementComponent::class.java)
+
+
+                tileMap.findPath?.let {
+                    if (it.findPathNode(
+                            tileMap.mapMatrix[position.gridY][position.gridX],
+                            tileMap.mapMatrix[targetGridY][targetGridX],
+                            movementComponent.currentPath
+                        )
+                    ) {
+                        movementComponent.pathIndex = 0
+                        for (i in movementComponent.currentPath) {
+                            print("Grid(:${i.mapX},${i.mapY}) ")
+                        }
+                        println()
                     }
-                    println()
                 }
-
-
             }
-
-
 //            units.moveTarget = GridPoint2(targetGridX, targetGridY)
             return true
         }
         return false
     }
 
+    // 其他 InputProcessor 方法的实现（不做处理，返回 false）
+    override fun keyDown(keycode: Int): Boolean = false
+    override fun keyUp(keycode: Int): Boolean = false
     override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean = false
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean = false
     override fun keyTyped(character: Char): Boolean = false
     override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
-
 }

@@ -14,29 +14,29 @@ class Graph(
     override fun getConnections(fromNode: TileNode): Array<Connection<TileNode?>?> {
         val connections = Array<Connection<TileNode?>?>()
 
-        val i = fromNode.i
-        val j = fromNode.j
+        val i = fromNode.mapY
+        val j = fromNode.mapX
         val oddCol = (j % 2) == 1
         // flat-top + row-offset (odd-q)
         // 这里 i 是“行”，j 是“列”
         val neighbors = if (oddCol) {
             // 奇数列：这一列整体下移半格
             arrayOf(
-                1 to 0,  // N
-                -1 to 0,   // S
+                -1 to 0,  // N
+                1 to 0,   // S
                 0 to 1,  // NE
-                -1 to 1,   // SE
+                1 to 1,   // SE
                 0 to -1, // NW
-                -1 to -1   // SW
+                1 to -1   // SW
             )
         } else {
             // 偶数列：未下移
             arrayOf(
-                1 to 0,  // N
-                -1 to 0,   // S
-                1 to 1,   // NE
+                -1 to 0,  // N
+                1 to 0,   // S
+                -1 to 1,   // NE
                 0 to 1,   // SE
-                1 to -1,  // NW
+                -1 to -1,  // NW
                 0 to -1   // SW
             )
         }
