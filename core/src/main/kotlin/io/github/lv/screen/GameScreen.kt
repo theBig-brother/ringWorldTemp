@@ -1,21 +1,27 @@
 package io.github.lv.screen
 
 import com.badlogic.gdx.ScreenAdapter
-import com.badlogic.gdx.graphics.OrthographicCamera
-import io.github.lv.RingWorldGame
-import io.github.lv.gameUnit.GameEngine
+import com.github.czyzby.autumn.annotation.Component
+import com.github.czyzby.autumn.annotation.Inject
+import io.github.lv.GameResources
+import io.github.lv.entity.thing.component.ThingUnitType
+import io.github.lv.tileMap.MapManager
 import java.io.File
-import java.sql.Connection
 import java.sql.DriverManager
 import kotlin.use
 
-class GameScreen(val game: RingWorldGame) : ScreenAdapter() {
-    val camera = OrthographicCamera()  // 创建一个摄像机
-    val gameEngine = GameEngine(game, camera)
-    lateinit var conn: Connection
+@Component
+class GameScreen : ScreenAdapter() {
+    @Inject
+    private lateinit var mapScreen: MapScreen
+    @Inject
+    private lateinit var mapManager: MapManager
+    @Inject
+    private lateinit var gameResources: GameResources
     override fun show() {
         table()
-        game.setScreen(MapScreen(game, camera, conn, gameEngine))
+        mapManager.add("home","Home_1.csv")
+        gameResources.game.setScreen(mapScreen)
     }
 
     fun table() {
@@ -28,7 +34,7 @@ class GameScreen(val game: RingWorldGame) : ScreenAdapter() {
 //        Class.forName("org.sqlite.JDBC") //少数机型会用
         println(dbFile.absolutePath)
         // 2. 建立连接
-        conn = DriverManager.getConnection(
+        gameResources.conn = DriverManager.getConnection(
             "jdbc:sqlite:${dbFile.absolutePath}/save1.db"
         )
         // 3. 创建表（SQL）
@@ -37,13 +43,15 @@ class GameScreen(val game: RingWorldGame) : ScreenAdapter() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             age INTEGER,
-            unitTexture string,
-            health INTEGER
-
+            unitTexture VARCHAR,
+            health INTEGER,
+            mapX INTEGER,
+            mapY INTEGER,
+tileMapId string
         )
     """.trimIndent()
 
-        conn.createStatement().use { stmt ->
+        gameResources.conn.createStatement().use { stmt ->
             stmt.execute(createTableSql)
         }
         createTableSql = """
@@ -52,25 +60,60 @@ class GameScreen(val game: RingWorldGame) : ScreenAdapter() {
             name TEXT NOT NULL
         )
         """.trimIndent()
-        conn.createStatement().use { stmt ->
+        gameResources.conn.createStatement().use { stmt ->
             stmt.execute(createTableSql)
         }
-        // 4. 插入数据
-//        val insertSql = "INSERT INTO gameUnits (name, age,unitTexture,health) VALUES (?, ?,?,?)"
-//        conn.prepareStatement(insertSql).use { ps ->
-//            ps.setString(1, "Alice")
-//            ps.setInt(2, 18)
-//            ps.setString(3, "images/unit/shaman.png")
-//            ps.setInt(4, 100)
-//
-//            ps.executeUpdate()
-//            ps.setString(1, "Bob")
-//            ps.setInt(2, 20)
-//            ps.setString(3, "images/unit/spearman.png")
-//            ps.setInt(4, 100)
-//            ps.executeUpdate()
-//        }
+        createTableSql = """
+        CREATE TABLE IF NOT EXISTS things (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            health FLOAT NOT NULL,
+            unitTexture VARCHAR,
+            mapX INTEGER,
+            mapY INTEGER,
+            unitType VARCHAR,
+            tileMapId String
+        )
+        """.trimIndent()
+        gameResources.conn.createStatement().use { stmt ->
+            stmt.execute(createTableSql)
+        }
 
+//        insertDemo()
     }
 
+    fun insertDemo(){
+        // 4. 插入数据
+        val insertSql1 = "INSERT INTO gameUnits (name, age,unitTexture,health,mapX,mapY,tileMapId) VALUES (?,?,?,?, ?,?,?)"
+        gameResources.conn.prepareStatement(insertSql1).use { ps ->
+            ps.setString(1, "Alice")
+            ps.setInt(2, 18)
+            ps.setString(3, "data/core/images/unit/shaman.png")
+            ps.setInt(4, 100)
+            ps.setInt(5, 1)
+            ps.setInt(6, 23)
+            ps.setString(7,"home")
+            ps.executeUpdate()
+            ps.setString(1, "Bob")
+            ps.setInt(2, 20)
+            ps.setString(3, "data/core/images/unit/spearman.png")
+            ps.setInt(4, 100)
+            ps.setInt(5, 0)
+            ps.setInt(6, 22)
+            ps.setString(7,"home")
+            ps.executeUpdate()
+        }
+        // 4. 插入数据
+        val insertSql2 = "INSERT INTO things (name, health,unitTexture,mapX,mapY,unitType,tileMapId) VALUES (?,?,?,?,?,?,?)"
+        gameResources.conn.prepareStatement(insertSql2).use { ps ->
+            ps.setString(1, "Tree1")
+            ps.setFloat(2, 100f)
+            ps.setString(3, "data/core/images/terrain/forest/great-tree.png")
+            ps.setInt(4, 0)
+            ps.setInt(5, 23)
+            ps.setString(6, ThingUnitType.TREE.name)
+            ps.setString(7, "home")
+            ps.executeUpdate()
+        }
+    }
 }

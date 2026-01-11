@@ -4,7 +4,6 @@ package io.github.lv.lwjgl3
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
-import io.github.lv.Main
 import io.github.lv.RingWorldGame
 
 /** Launches the desktop (LWJGL3) application. */
@@ -12,6 +11,7 @@ fun main() {
     // This handles macOS support and helps on Windows.
     if (StartupHelper.startNewJvmIfRequired())
         return
+
 
     try {
         Lwjgl3Application(RingWorldGame(), Lwjgl3ApplicationConfiguration().apply {
@@ -50,5 +50,6 @@ fun main() {
         System.err.println("Uncaught exception in thread ${t.name}")
         e.printStackTrace()
     }
+    // 程序退出时：
 
 }

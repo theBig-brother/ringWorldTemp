@@ -4,32 +4,48 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Texture
+import com.github.czyzby.autumn.annotation.Initiate
+import com.github.czyzby.autumn.annotation.Inject
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import io.github.lv.Constant.TILE_PX
+import io.github.lv.GameResources
 import io.github.lv.RingWorldGame
+import io.github.lv.ai.FindPath
+import io.github.lv.ai.Graph
 import io.github.lv.io.github.lv.ui.GameAssets.texture
 import java.io.File
 import kotlin.String
 
-class TileMap(private val game: RingWorldGame, private val camera: OrthographicCamera) {
-    val cobblesTexture: Texture by lazy { Texture("images/terrain/cobbles-keep.png") }
+class TileMap(
+  val  camera: OrthographicCamera,
+  val  gameResources: GameResources,
+  val mapName: String,
+  terrainConfig: TerrainConfig
+) {
+
+    val cobblesTexture: Texture by lazy { Texture("data/core/images/terrain/cobbles-keep.png") }
     var mapHeight: Int = 0 // 地图总行数
     var mapWidth: Int = 0
     var mapMatrix: Array<Array<TileNode?>> = arrayOf()
     var findPath: FindPath? = null
+    var visitedMatrix: Array<BooleanArray > = arrayOf()
+    var blockedMatrix: Array<BooleanArray> = arrayOf()
 
-    init {
-        val rows: List<List<String>> = csvReader().readAll(File("Home_1.csv"))
+     init {
+//        val rows: List<List<String>> = csvReader().readAll(File("Home_1.csv"))
+        val rows: List<List<String>> = csvReader().readAll(File(mapName))
         // rows[0] 就是第一行；rows[0][0] 就是第一行第一列
         mapHeight = rows.size
         mapWidth = rows.firstOrNull()?.size ?: 0
         mapMatrix = Array(mapHeight) { arrayOfNulls(mapWidth) }
+        blockedMatrix= Array(mapHeight) { BooleanArray(mapWidth) }
+        visitedMatrix= Array(mapHeight) { BooleanArray(mapWidth) }
         for (i in rows.indices) {
             for (j in rows[i].indices) {
                 mapMatrix[i][j] = TileNode(j, i, i * mapWidth + j)
                 mapMatrix[i][j]?.string =  rows[i][j].trim().takeIf { it.contains('^') }?.substringBefore('^') ?: rows[i][j].trim()
                 mapMatrix[i][j]?.nodeTexture =
-                    texture(path = "images/terrain/" + game.terrainSymbol[mapMatrix[i][j]?.string] + ".png")
+                    texture(path = "data/core/images/terrain/" + terrainConfig.terrainSymbol[mapMatrix[i][j]?.string] + ".png")
             }
         }
         val graph = Graph(mapMatrix)
@@ -40,12 +56,12 @@ class TileMap(private val game: RingWorldGame, private val camera: OrthographicC
     fun draw(delta: Float) {
         handleInput(delta)
         clampCamera()
-        game.batch.begin()
+        gameResources.batch.begin()
         for (i in 0 until mapHeight) {
             for (j in 0 until mapWidth) {
                 mapMatrix[i][j]?.let {
                     val renderI = mapHeight - 1 - i
-                    game.batch.draw(
+                    gameResources.batch.draw(
                         it.nodeTexture,
                         j * TILE_PX * 0.75f,
                         renderI * TILE_PX - (j % 2) * TILE_PX / 2,
@@ -55,7 +71,7 @@ class TileMap(private val game: RingWorldGame, private val camera: OrthographicC
                 }
             }
         }
-        game.batch.end()
+        gameResources.batch.end()
     }
 
     val mapWorldWidth = mapWidth * TILE_PX * 0.75f

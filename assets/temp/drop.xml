@@ -1,0 +1,10 @@
+<drop>
+    <id>2
+    </id>
+    <name>club
+    </name>
+    <health>100
+    </health>
+    <texture>data/core/images/items/club.png
+    </texture>
+</drop>

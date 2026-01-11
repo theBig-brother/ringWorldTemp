@@ -1,0 +1,16 @@
+<menu>
+    <id>plugins</id>
+    <name>Plugins</name>
+    <items>
+        <item>
+            <id>recents</id>
+            <name>Recents</name>
+            <action>showRecentsAction</action>
+        </item>
+        <item>
+            <id>manage</id>
+            <name>Manage Plugins</name>
+            <action>managePluginsAction</action>
+        </item>
+    </items>
+</menu>

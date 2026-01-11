@@ -12,6 +12,10 @@ dependencies {
   api 'ch.qos.logback:logback-classic:1.5.13'
   api "com.github.doyaaaaaken:kotlin-csv-jvm:1.9.3"
   api "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0"
+  api "com.kotcrab.vis:vis-ui:$visUiVersion"
+  api "com.crashinvaders.lml:gdx-autumn:$lmlVersion"
+  api "com.crashinvaders.lml:gdx-autumn-fcs:$lmlVersion"
+
   if (enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
   }

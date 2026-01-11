@@ -2,36 +2,68 @@ package io.github.lv
 
 import com.badlogic.gdx.Game
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.utils.viewport.FitViewport
-import io.github.lv.screen.MapScreen
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
+import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.github.czyzby.autumn.annotation.Component
+import com.github.czyzby.autumn.annotation.Inject
+import com.github.czyzby.autumn.context.ContextDestroyer
+import com.github.czyzby.autumn.context.ContextInitializer
+import com.kotcrab.vis.ui.VisUI
+import com.kotcrab.vis.ui.VisUI.SkinScale
 import java.io.File
-import java.sql.DriverManager
-import java.sql.Connection
 import io.github.lv.screen.GameScreen
+import com.github.czyzby.autumn.fcs.scanner.DesktopClassScanner
+import io.github.lv.entity.GameEngine
 
 // ./gradlew :lwjgl3:run --stacktrace --info
 //./gradlew :lwjgl3:run --stacktrace --debug
+@Component
+class RingWorldGame() : Game() {
+    //    val viewport by lazy { FitViewport(Constant.ViewportWidth, Constant.ViewportHeight) }
+    val viewport = ScreenViewport()
 
-class RingWorldGame : Game() {
-    lateinit var batch: SpriteBatch
-
-    val viewport by lazy { FitViewport(Constant.ViewportWidth, Constant.ViewportHeight) }
-    val font by lazy { BitmapFont() }
-    var terrainSymbol = mutableMapOf<String, String>()
-
+    private lateinit var gameResources: GameResources
+    @Inject
+    private lateinit var gameScreen: GameScreen
+    private lateinit var destroyer: ContextDestroyer
     override fun create() {
-        batch = SpriteBatch()
-        terrain()
 // use libGDX's default font,font has 15pt, but we need to scale it to our viewport by ratio of viewport height to screen height
-        font.setUseIntegerPositions(false)
-        font.getData()?.setScale(viewport.worldHeight / Gdx.graphics.height)
-        //       this.setScreen(MainMenuScreen(this))
-        this.setScreen(GameScreen(this))
+        // 加载支持中文的字体
+        val fontGenerator = FreeTypeFontGenerator(Gdx.files.internal("ui/simhei.ttf"))
+        val fontParameter = FreeTypeFontGenerator.FreeTypeFontParameter()
+        fontParameter.size = 24  // 设置字体大小
+        fontParameter.flip = true  // 翻转字体，适用于一些字体生成
+
+        //Autumn 入口
+        val initializer = ContextInitializer()
+
+        // 配置扫描（桌面 classpath 扫描器由 gdx-autumn-desktop-classgraph 提供）
+        //告诉 Autumn：从 RingWorldGame 所在包开始，用这个 scanner
+        initializer.scan(RingWorldGame::class.java, DesktopClassScanner()).doAfterInitiation { ctx ->
+            gameResources = ctx.getComponent(GameResources::class.java) as GameResources
+            gameResources.batch = SpriteBatch()
+            // 生成字体
+            gameResources.font = fontGenerator.generateFont(fontParameter)
+            gameResources.font.setUseIntegerPositions(false)
+            gameResources.camera=OrthographicCamera()
+            gameResources.viewport = ScreenViewport(gameResources.camera)
+            gameResources.game = this
+            //resources.font.getData()?.setScale(viewport.worldHeight / Gdx.graphics.height)
+            val gameEngine = ctx.getComponent(GameEngine::class.java) as GameEngine
+            gameEngine.initialize()
+            //下面这句是未知原因
+            gameScreen=ctx.getComponent(GameScreen::class.java) as GameScreen
+        }
+        //启动 DI（这里才发生：@Component / @Inject / @Initiate）
+        destroyer = initializer.initiate()
+        VisUI.load(SkinScale.X1)
+
+        this.setScreen(gameScreen)
+        //        this.setScreen(MainMenuScreen(this))
 //        debugPaths()
     }
-
 
     fun debugPaths() {
         println("=== 路径调试信息 ===")
@@ -58,36 +90,11 @@ class RingWorldGame : Game() {
     }
 
     override fun dispose() {
-        batch.dispose()
-        font.dispose()
+        gameResources.batch.dispose()
+        gameResources.font.dispose()
+        destroyer.dispose()
     }
 
-    fun terrain() {
-//  读取整个文件为字符串
-        val content: String = File("terrain.cfg").readText()
-        val cleanedText = removeCommentLines(content)
-        val regex1 = Regex("""\[terrain_type](.*?)\[/terrain_type]""", RegexOption.DOT_MATCHES_ALL)
-        val regex2 = Regex("""string=[^ \t\n]*""")
-        val regex3 = Regex("""symbol_image=[^ \t\n]*""")
-        val allMatches = regex1.findAll(cleanedText)
-        allMatches.forEach { match ->
-            // match.value 是整个匹配（包括标签）
-            // match.groupValues[1] 是第一个捕获组的内容（不包括标签）
-            val innerContent = match.groupValues[1]  // 只包含中间的内容
-            val string = regex2.find(innerContent)
-            val symbolImage = regex3.find(innerContent)
-            if (string != null && symbolImage != null) {
-                val key = string.value.substringAfter('=', "").trim()
-                val value = symbolImage.value.substringAfter('=', "").trim()
-                if (key.isNotEmpty() && value.isNotEmpty()) {
-                    terrainSymbol[key] = value
-//                    println("Added: '$key' -> '$value'")
-                } else {
-                    println("Warning: key='$key', value='$value' - One or both are empty")
-                }
-            }
-        }
-    }
 //    fun loadNewSaveGame(saveData: SaveData) {
 //        // 清除现有的实体和系统
 //        engine.removeAllEntities()
