@@ -1,0 +1,6 @@
+<root>
+    <name>altar</name>
+    <texture>data/core/images/items/altar.png</texture>
+    <type>construct</type>
+
+</root>

@@ -12,6 +12,5 @@ class MapContext(
     terrainConfig: TerrainConfig,
     var loaded: Boolean = false
 ) {
-    val tileMap: TileMap = TileMap(gameResources.camera, gameResources, mapName, terrainConfig)
-
+    val tileMap: TileMap = TileMap(gameResources.camera, gameResources, mapName,engines, terrainConfig)
 }

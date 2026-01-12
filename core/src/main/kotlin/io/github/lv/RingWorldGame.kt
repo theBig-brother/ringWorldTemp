@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.github.czyzby.autumn.annotation.Component
 import com.github.czyzby.autumn.annotation.Inject
@@ -25,6 +26,7 @@ class RingWorldGame() : Game() {
     val viewport = ScreenViewport()
 
     private lateinit var gameResources: GameResources
+
     @Inject
     private lateinit var gameScreen: GameScreen
     private lateinit var destroyer: ContextDestroyer
@@ -47,14 +49,19 @@ class RingWorldGame() : Game() {
             // 生成字体
             gameResources.font = fontGenerator.generateFont(fontParameter)
             gameResources.font.setUseIntegerPositions(false)
-            gameResources.camera=OrthographicCamera()
+            gameResources.camera = OrthographicCamera().apply {
+                setToOrtho(false)  // false表示Y向上
+                update()
+            }
+            gameResources.shapeRenderer = ShapeRenderer()
+
             gameResources.viewport = ScreenViewport(gameResources.camera)
             gameResources.game = this
             //resources.font.getData()?.setScale(viewport.worldHeight / Gdx.graphics.height)
             val gameEngine = ctx.getComponent(GameEngine::class.java) as GameEngine
             gameEngine.initialize()
             //下面这句是未知原因
-            gameScreen=ctx.getComponent(GameScreen::class.java) as GameScreen
+            gameScreen = ctx.getComponent(GameScreen::class.java) as GameScreen
         }
         //启动 DI（这里才发生：@Component / @Inject / @Initiate）
         destroyer = initializer.initiate()

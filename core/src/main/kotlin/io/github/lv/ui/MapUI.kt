@@ -22,12 +22,25 @@ import com.github.czyzby.autumn.annotation.Component
 import com.github.czyzby.autumn.annotation.Inject
 import com.kotcrab.vis.ui.layout.GridGroup
 import com.kotcrab.vis.ui.widget.*
+import io.github.lv.GameResources
 import io.github.lv.entity.gameUnit.component.UnitInformationComponent
+import io.github.lv.entity.thing.ThingBuilder
+import io.github.lv.entity.thing.component.ThingUnitType
+import io.github.lv.io.github.lv.ui.GameAssets
+import io.github.lv.io.github.lv.ui.GameAssets.drawable
 import io.github.lv.io.github.lv.ui.UiDrawables
+import io.github.lv.tileMap.WhichConstruct
+
 @Component
 class MapUI {
     @Inject
-    private lateinit var actionRegistry:ActionRegistry
+    private lateinit var actionRegistry: ActionRegistry
+
+    @Inject
+    private lateinit var gameResources: GameResources
+
+    @Inject
+    private lateinit var whichConstruct: WhichConstruct
     var stage: Stage? = null
     var bundle: I18NBundle? = null
     private lateinit var worldPlaceholder: VisTable
@@ -166,25 +179,71 @@ class MapUI {
         val xmlFileName = fileName?.removeSuffix(".xml") + ".xml"
         group = GridGroup(72f, 8f); //item size 64px, spacing 8px
 //        println(uiXmlPath + "architect/" + xmlFileName)
-        val file = Gdx.files.internal(uiXmlPath + "architect/" + fileName + ".xml")
-        val rootElement = xmlReader.parse(file)
-        for (itemElement in rootElement.children) {
-          val   uiDrawable= UiDrawables()
-            val imageBtn = VisImageTextButton(itemElement.text, uiDrawable.portraitImg)
-            imageBtn.setOrientation(VisImageTextButton.Orientation.TEXT_BOTTOM)
+        val file = Gdx.files.internal(uiXmlPath + "architect/" + xmlFileName)
+        when (xmlFileName) {
+            "Orders.xml" -> {
+                val rootElement = xmlReader.parse(file)
+                for (itemElement in rootElement.children) {
+                    val uiDrawable = UiDrawables()
+                    val imageBtn = VisImageTextButton(itemElement.text, uiDrawable.portraitImg)
+                    imageBtn.setOrientation(VisImageTextButton.Orientation.TEXT_BOTTOM)
 // Create the button container (it can be an ImageButton, but you can use the label for interaction)
-            imageBtn.addListener(object : ClickListener() {
-                override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                    // Add your click handling code here
-
-                }
-            })
-
+                    imageBtn.addListener(object : ClickListener() {
+                        override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                            // Add your click handling code here
+                            gameResources.orderState = OrderState.valueOf(itemElement.text)
+                            gameResources.mouseState = MouseState.ORDER
+                        }
+                    })
 //            label.setWrap(true) // 允许标签换行
+                    group.addActor(imageBtn)
+                }
+            }
 
+            "Zone.xml" -> {
 
-            group.addActor(imageBtn)
+            }
+
+            "Structure.xml" -> {
+
+            }
+
+            "Floors.xml" -> {
+
+            }
+
+            else -> {
+                val rootElement = xmlReader.parse(file)
+                for (itemElement in rootElement.children) {
+                    val theRootElement = xmlReader.parse(
+                        Gdx.files.internal(
+                            uiXmlPath + "architect/" + xmlFileName.removeSuffix(".xml") + "/" + itemElement.text.removeSuffix(
+                                ".xml"
+                            ) + ".xml"
+                        )
+                    )
+                    val itemName = theRootElement.getChildByName("name").text
+                    val itemTexture = theRootElement.getChildByName("texture").text
+                    val imageBtn = VisImageTextButton(itemName, drawable(itemTexture))
+                    imageBtn.setOrientation(VisImageTextButton.Orientation.TEXT_BOTTOM)
+// Create the button container (it can be an ImageButton, but you can use the label for interaction)
+                    imageBtn.addListener(object : ClickListener() {
+                        override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                            // Add your click handling code here
+                            gameResources.mouseState = MouseState.CONSTRUCTION
+                            whichConstruct.now = ThingBuilder.Builder().apply {
+                                this@apply.name = itemName
+                                texture = GameAssets.texture(itemTexture)
+                                thingUnitType = ThingUnitType.PLAN
+                            }.build()
+                        }
+                    })
+//            label.setWrap(true) // 允许标签换行
+                    group.addActor(imageBtn)
+                }
+            }
         }
+
         // 清空当前内容
         worldPlaceholder.clear()
         // 创建弹出菜单
@@ -254,6 +313,7 @@ class MapUI {
         }
         return menu
     }
+
     // 菜单项点击监听器
     fun createMenuItemListener(action: String, param: Any? = null): ChangeListener {
 // 使用 DSL 风格的注册
@@ -311,7 +371,6 @@ class ActionRegistry {
         handlers[name]?.invoke(param)
     }
 }
-
 
 
 // 事件处理函数

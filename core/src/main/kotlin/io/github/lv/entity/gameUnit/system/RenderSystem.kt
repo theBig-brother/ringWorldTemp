@@ -1,16 +1,13 @@
 package io.github.lv.entity.gameUnit.system
 
-import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.EntitySystem
 import com.badlogic.ashley.core.Family
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.Sprite
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.github.czyzby.autumn.annotation.Inject
 import io.github.lv.GameResources
 import io.github.lv.entity.EngineContainer
-import io.github.lv.entity.GameEngine
 import io.github.lv.entity.gameUnit.component.UnitAppearanceComponent
 
 // 渲染系统，用来渲染所有包含AppearanceComponent的实体

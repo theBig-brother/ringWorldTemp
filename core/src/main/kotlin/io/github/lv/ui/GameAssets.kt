@@ -58,7 +58,8 @@ object GameAssets{
      * 这里我默认：存在但未加载 -> 同步加载该资源（开发期方便）。
      * 如果你想严格异步加载，把 autoLoadIfMissing 改成 false。
      */
-    fun texture(path: String?, autoLoadIfMissing: Boolean = true): Texture {
+    fun texture(paths: String?, autoLoadIfMissing: Boolean = true): Texture {
+       val path=paths?.trim()
         if(path==null) return placeholderTexture
         if (!existsInternal(path)) return placeholderTexture
         if (am.isLoaded(path, Texture::class.java)) return am.get(path, Texture::class.java)

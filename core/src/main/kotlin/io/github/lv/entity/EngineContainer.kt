@@ -59,11 +59,11 @@ class EngineContainer() {
         thingBuilder: ThingBuilder,
     ) {
         val entity = Entity()
-        if (thingBuilder.thingUnitType == ThingUnitType.PLAN) {
-            entity.add(planComponent(thingBuilder))
-        } else {
+//        if (thingBuilder.thingUnitType == ThingUnitType.PLAN) {
+//            entity.add(planComponent(thingBuilder))
+//else
             entity.add(thingInformationComponent(thingBuilder))
-        }
+
         val positionComponent = PositionComponent()
         positionComponent.mapX = thingBuilder.mapX
         positionComponent.mapY = thingBuilder.mapY

@@ -1,51 +1,58 @@
 package io.github.lv.tileMap
 
+import com.badlogic.ashley.core.Family
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.Texture
-import com.github.czyzby.autumn.annotation.Initiate
-import com.github.czyzby.autumn.annotation.Inject
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.Vector2
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import io.github.lv.Constant.TILE_PX
 import io.github.lv.GameResources
-import io.github.lv.RingWorldGame
 import io.github.lv.ai.FindPath
 import io.github.lv.ai.Graph
+import io.github.lv.entity.EngineContainer
+import io.github.lv.entity.PositionComponent
+import io.github.lv.entity.thing.component.ThingAppearanceComponent
+import io.github.lv.entity.thing.component.ThingInformationComponent
 import io.github.lv.io.github.lv.ui.GameAssets.texture
+import io.github.lv.ui.MouseState
+import io.github.lv.ui.OrderState
 import java.io.File
-import kotlin.String
+
 
 class TileMap(
-  val  camera: OrthographicCamera,
-  val  gameResources: GameResources,
-  val mapName: String,
-  terrainConfig: TerrainConfig
+    val camera: OrthographicCamera,
+    val gameResources: GameResources,
+    mapName: String,
+    val engines: EngineContainer,
+    terrainConfig: TerrainConfig
 ) {
-
-    val cobblesTexture: Texture by lazy { Texture("data/core/images/terrain/cobbles-keep.png") }
+//        val cobblesTexture: Texture by lazy { Texture("data/core/images/terrain/cobbles-keep.png") }
+val cobblesTexture=texture("data/core/images/terrain/cobbles-keep.png")
     var mapHeight: Int = 0 // 地图总行数
     var mapWidth: Int = 0
     var mapMatrix: Array<Array<TileNode?>> = arrayOf()
     var findPath: FindPath? = null
-    var visitedMatrix: Array<BooleanArray > = arrayOf()
+    var visitedMatrix: Array<BooleanArray> = arrayOf()
     var blockedMatrix: Array<BooleanArray> = arrayOf()
 
-     init {
+    init {
 //        val rows: List<List<String>> = csvReader().readAll(File("Home_1.csv"))
         val rows: List<List<String>> = csvReader().readAll(File(mapName))
         // rows[0] 就是第一行；rows[0][0] 就是第一行第一列
         mapHeight = rows.size
         mapWidth = rows.firstOrNull()?.size ?: 0
         mapMatrix = Array(mapHeight) { arrayOfNulls(mapWidth) }
-        blockedMatrix= Array(mapHeight) { BooleanArray(mapWidth) }
-        visitedMatrix= Array(mapHeight) { BooleanArray(mapWidth) }
+        blockedMatrix = Array(mapHeight) { BooleanArray(mapWidth) }
+        visitedMatrix = Array(mapHeight) { BooleanArray(mapWidth) }
         for (i in rows.indices) {
             for (j in rows[i].indices) {
                 mapMatrix[i][j] = TileNode(j, i, i * mapWidth + j)
-                mapMatrix[i][j]?.string =  rows[i][j].trim().takeIf { it.contains('^') }?.substringBefore('^') ?: rows[i][j].trim()
+                mapMatrix[i][j]?.string =
+                    rows[i][j].trim().takeIf { it.contains('^') }?.substringBefore('^') ?: rows[i][j].trim()
                 mapMatrix[i][j]?.nodeTexture =
-                    texture(path = "data/core/images/terrain/" + terrainConfig.terrainSymbol[mapMatrix[i][j]?.string] + ".png")
+                    texture(paths = "data/core/images/terrain/" + terrainConfig.terrainSymbol[mapMatrix[i][j]?.string] + ".png")
             }
         }
         val graph = Graph(mapMatrix)
@@ -62,24 +69,34 @@ class TileMap(
                 mapMatrix[i][j]?.let {
                     val renderI = mapHeight - 1 - i
                     gameResources.batch.draw(
-                        it.nodeTexture,
-                        j * TILE_PX * 0.75f,
-                        renderI * TILE_PX - (j % 2) * TILE_PX / 2,
-                        TILE_PX,
-                        TILE_PX
+                        it.nodeTexture, j * TILE_PX * 0.75f, renderI * TILE_PX - (j % 2) * TILE_PX / 2, TILE_PX, TILE_PX
                     )
                 }
             }
         }
+        gameResources.batch.draw(cobblesTexture,0f,0f,cobblesTexture.width.toFloat(),cobblesTexture.height.toFloat())
+
         gameResources.batch.end()
+        if (drawRect) {
+            gameResources.shapeRenderer.begin(ShapeRenderer.ShapeType.Line)  // 使用线条模式
+            // 设置ShapeRenderer的投影矩阵为相机的矩阵，应用相机的缩放、平移等变换
+            gameResources.shapeRenderer.projectionMatrix = gameResources.camera.combined
+            // 绘制精灵的边框，使用Sprite的x、y、width、height来表示边界
+            gameResources.shapeRenderer.rect(
+                startRect.x, startRect.y,
+                touchPos.x - startRect.x, touchPos.y - startRect.y
+            )
+            gameResources.shapeRenderer.end()
+        }
     }
 
+    var drawRect = false
     val mapWorldWidth = mapWidth * TILE_PX * 0.75f
     val mapWorldHeight = mapHeight * TILE_PX
     fun clampCamera() {
         // 1. 计算相机的可视窗口半宽/半高
-        val halfViewWidth = camera.viewportWidth * camera.zoom / 2f
-        val halfViewHeight = camera.viewportHeight * camera.zoom / 2f
+//        val halfViewWidth = camera.viewportWidth * camera.zoom / 2f
+//        val halfViewHeight = camera.viewportHeight * camera.zoom / 2f
 
         // 2. 限制的范围：相机中心点不能超出这些范围
         // 计算相机中心点允许的最大/最小值
@@ -148,7 +165,35 @@ class TileMap(
             val deltaY = Gdx.input.deltaY * camera.zoom
             camera.translate(deltaX, deltaY, 0f)
         }
+        if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+
+            if (gameResources.mouseState == MouseState.ORDER) {
+                //标记砍树
+                if (gameResources.orderState == OrderState.Chop) {
+                    touchPos.set(Gdx.input.x.toFloat(), Gdx.input.y.toFloat()) // Get where the touch happened on screen
+                    gameResources.viewport.unproject(touchPos)
+                    val entities =
+                        engines.thingEngine.getEntitiesFor(Family.all(ThingAppearanceComponent::class.java).get())
+                    for (entity in entities) {
+                        val thingInformationComponent = entity.getComponent(ThingInformationComponent::class.java)
+                        val positionComponent = entity.getComponent(PositionComponent::class.java)
+                        val x = mapToWorld(positionComponent.mapX, positionComponent.mapY).first
+                        val y = mapToWorld(positionComponent.mapX, positionComponent.mapY).second
+                        if (startRect.x <= x && x <= touchPos.x && touchPos.y <= y && y <= startRect.y) {
+                            thingInformationComponent.willDestroy = true
+                        }
+                    }
+                }
+            }
+            else if(gameResources.mouseState == MouseState.CONSTRUCTION){
+
+            }
+        }
     }
+
+    var startRect: Vector2 = Vector2()
+    val touchPos = Vector2() //防止频繁创建对象
+
 
     // 地图行 -> 渲染行（翻转）
     private fun toRenderRow(mapY: Int): Int = (mapHeight - 1 - mapY)
@@ -165,21 +210,17 @@ class TileMap(
         val renderRow = toRenderRow(mapY)  // ⭐ 关键翻转
         return if (center) {
             val x = mapX * TILE_PX * 0.75f + TILE_PX / 2f
-            val y = renderRow * TILE_PX -
-                (mapX % 2) * TILE_PX / 2f +
-                TILE_PX / 2f
+            val y = renderRow * TILE_PX - (mapX % 2) * TILE_PX / 2f + TILE_PX / 2f
             x to y
         } else {
             val x = mapX * TILE_PX * 0.75f
-            val y = renderRow * TILE_PX -
-                (mapX % 2) * TILE_PX / 2f
+            val y = renderRow * TILE_PX - (mapX % 2) * TILE_PX / 2f
             x to y
         }
     }
     // 根据单位的屏幕坐标获取所在的六边形网格坐标
     /** 世界坐标 -> 地图格子（用于鼠标点选或人物位置） */
-    fun worldToMap(worldX: Float, worldY: Float): Pair<Int, Int> {
-        /*中心到左下角的偏移量在传入前计算
+    fun worldToMap(worldX: Float, worldY: Float): Pair<Int, Int> {/*中心到左下角的偏移量在传入前计算
         *  计算网格坐标
         *  计算x坐标对应的网格列数，并四舍五入
         * */
@@ -192,6 +233,5 @@ class TileMap(
     }
 
     /** 边界检查也放这儿，别散落在各处 */
-    fun inBounds(mapX: Int, mapY: Int): Boolean =
-        mapX in 0 until mapWidth && mapY in 0 until mapHeight
+    fun inBounds(mapX: Int, mapY: Int): Boolean = mapX in 0 until mapWidth && mapY in 0 until mapHeight
 }
