@@ -1,0 +1,27 @@
+<menu>
+    <id>file</id>
+    <name>Other</name>
+    <items>
+        <item>
+            <id>Priority</id>
+            <name>Priority</name>
+            <action>openPriorityMenu</action>
+        </item>
+        <item>
+            <id>Research</id>
+            <name>Research</name>
+            <action>openResearchMenu</action>
+        </item>
+        <item>
+            <id>Schedule</id>
+            <name>Schedule</name>
+            <action>openScheduleMenu</action>
+        </item>
+        <item>
+            <id>Assign</id>
+            <name>Assign</name>
+            <action>openAssignMenu</action>
+        </item>
+
+    </items>
+</menu>

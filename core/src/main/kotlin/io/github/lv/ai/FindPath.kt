@@ -12,8 +12,8 @@ class FindPath(
 ) {
     val manhattanHeuristic = object : Heuristic<TileNode> {
         override fun estimate(node: TileNode, endNode: TileNode): Float {
-            return (abs(node.mapX - endNode.mapX) + abs(node.mapY - endNode.mapY)).toFloat()
-//        return 0f
+//            return (abs(node.mapX - endNode.mapX) + abs(node.mapY - endNode.mapY)).toFloat()
+        return 0f
         }
     }
 

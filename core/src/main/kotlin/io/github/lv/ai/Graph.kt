@@ -22,20 +22,20 @@ class Graph(
             // 偶数列：未下移
             arrayOf(
                 -1 to 0,  // N
-                1 to 0,   // S
-                -1 to 1,   // NE
-                0 to 1,   // SE
                 -1 to -1,  // NW
-                0 to -1   // SW
+                0 to -1,   // SW
+                1 to 0,   // S
+                0 to 1,   // SE
+                -1 to 1,   // NE
             ),
             // 奇数列：这一列整体下移半格
             arrayOf(
                 -1 to 0,  // N
-                1 to 0,   // S
-                0 to 1,  // NE
-                1 to 1,   // SE
                 0 to -1, // NW
-                1 to -1   // SW
+                1 to -1,  // SW
+                1 to 0,   // S
+                1 to 1,   // SE
+                0 to 1,  // NE
             )
         )
         for ((di, dj) in neighbors[j % 2]) {

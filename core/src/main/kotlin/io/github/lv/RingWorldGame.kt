@@ -16,7 +16,7 @@ import com.kotcrab.vis.ui.VisUI.SkinScale
 import java.io.File
 import io.github.lv.screen.GameScreen
 import com.github.czyzby.autumn.fcs.scanner.DesktopClassScanner
-import io.github.lv.entity.GameEngine
+import io.github.lv.entity.EngineSystem
 
 // ./gradlew :lwjgl3:run --stacktrace --info
 //./gradlew :lwjgl3:run --stacktrace --debug
@@ -24,7 +24,7 @@ import io.github.lv.entity.GameEngine
 class RingWorldGame() : Game() {
     //    val viewport by lazy { FitViewport(Constant.ViewportWidth, Constant.ViewportHeight) }
     val viewport = ScreenViewport()
-
+    @Inject
     private lateinit var gameResources: GameResources
 
     @Inject
@@ -58,14 +58,16 @@ class RingWorldGame() : Game() {
             gameResources.viewport = ScreenViewport(gameResources.camera)
             gameResources.game = this
             //resources.font.getData()?.setScale(viewport.worldHeight / Gdx.graphics.height)
-            val gameEngine = ctx.getComponent(GameEngine::class.java) as GameEngine
-            gameEngine.initialize()
+            val engineSystem = ctx.getComponent(EngineSystem::class.java) as EngineSystem
+            engineSystem.initialize()
             //下面这句是未知原因
             gameScreen = ctx.getComponent(GameScreen::class.java) as GameScreen
         }
+        //先load VisUI
+        VisUI.load(SkinScale.X1)
         //启动 DI（这里才发生：@Component / @Inject / @Initiate）
         destroyer = initializer.initiate()
-        VisUI.load(SkinScale.X1)
+
 
         this.setScreen(gameScreen)
         //        this.setScreen(MainMenuScreen(this))

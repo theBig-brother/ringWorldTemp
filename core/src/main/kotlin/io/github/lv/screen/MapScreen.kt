@@ -5,11 +5,9 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.audio.Music
-import com.badlogic.gdx.graphics.*
-import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.*
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.utils.Scaling
 import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.XmlReader
@@ -19,17 +17,15 @@ import com.github.czyzby.autumn.annotation.Initiate
 import com.github.czyzby.autumn.annotation.Inject
 import io.github.lv.GameResources
 import io.github.lv.entity.EngineContainer
-import io.github.lv.entity.gameUnit.UnitBuilder
-import io.github.lv.entity.gameUnit.component.UnitAppearanceComponent
-import io.github.lv.entity.gameUnit.system.RenderSystem
-import io.github.lv.io.github.lv.ui.GameAssets.texture
+import io.github.lv.entity.pawn.PawnBuilder
+import io.github.lv.entity.pawn.system.render.RenderSystem
 import io.github.lv.entity.thing.ThingBuilder
-import io.github.lv.tileMap.MapInputProcessor
 import io.github.lv.tileMap.MapManager
-import io.github.lv.tileMap.TerrainConfig
-import io.github.lv.tileMap.TileMap
+import io.github.lv.tileMap.inputProcessor.MapInputProcessor
+import io.github.lv.tileMap.inputProcessor.MouseStateMachine
+import io.github.lv.tileMap.inputProcessor.OrderInputProcessor
+import io.github.lv.tileMap.inputProcessor.PawnInputProcessor
 import io.github.lv.ui.MapUI
-
 
 @Component
 class MapScreen : ScreenAdapter() {
@@ -41,35 +37,37 @@ class MapScreen : ScreenAdapter() {
     @Inject
     private lateinit var engines: EngineContainer
 
-
     @Inject
     private lateinit var mapUI: MapUI
-
     // 直接注入组件化后的输入处理器
+    @Inject
+    private lateinit var orderInputProcessor: OrderInputProcessor
+
+    @Inject
+    private lateinit var pawnInputProcessor: PawnInputProcessor
+
     @Inject
     private lateinit var mapInputProcessor: MapInputProcessor
 
     @Inject
     private lateinit var mapManager: MapManager
+    @Inject
+    private lateinit var mouseStateMachine: MouseStateMachine
     val multiplexer = InputMultiplexer()        // 创建多重输入处理器
     val uiStage: Stage by lazy { Stage(ScreenViewport()) }
+//    val uiStage: Stage by lazy { stage(viewport=ScreenViewport()) }
     var selectedUnit: Entity? = null
     var unitPortrait: Image = Image()      // 先不给 drawable
 
     @Initiate
+    @Suppress("unused")
     fun initialize() {
 
     }
 
     fun updateUnitPortrait(entity: Entity?) {
-        if (entity == null) {
-            unitPortrait.drawable = null
-            return
-        }
-        val appearance: UnitAppearanceComponent = entity.getComponent(UnitAppearanceComponent::class.java)
-        unitPortrait.drawable = TextureRegionDrawable(
-            TextureRegion(appearance.unitTexture)
-        )
+        mapUI.update(entity)
+
     }
 
     override fun show() {
@@ -78,18 +76,22 @@ class MapScreen : ScreenAdapter() {
 //        tileMap = TileMap(gameResources.camera, gameResources, terrainConfig)
         mapManager.switch("home")
 
-        mapInputProcessor.configure(
+        pawnInputProcessor.configure(
             getSelectedUnit = { selectedUnit }
         ) { unit ->
             selectedUnit = unit
             updateUnitPortrait(unit)
         }
-        multiplexer.addProcessor(uiStage)          // UI优先
-        multiplexer.addProcessor(mapInputProcessor)    // 然后是游戏输入
-//        multiplexer.addProcessor(gameInput)      // 最后是游戏输入
+        orderInputProcessor.configure {
+            selectedUnit
+        }
+        multiplexer.addProcessor(uiStage)         // UI舞台优先
+        multiplexer.addProcessor(pawnInputProcessor)        // 然后是ui输入
+        multiplexer.addProcessor(mapInputProcessor)        // 接着是地图输入
+        multiplexer.addProcessor(orderInputProcessor)     // 最后是游戏输入
         Gdx.input.inputProcessor = multiplexer
         uiStage.isDebugAll = true
-        mapUI.initializeUI(uiStage, unitPortrait, selectedUnit)
+        mapUI.initializeUI(uiStage)
         findUnits()
         findThings()
     }
@@ -110,23 +112,23 @@ class MapScreen : ScreenAdapter() {
             id = rootElement.getChildByName("id").text.toInt()
             name = rootElement.getChildByName("name").text
             health = rootElement.getChildByName("health").text.toFloat()
-            texture = texture(rootElement.getChildByName("texture").text)
+            texturePath = rootElement.getChildByName("texture").text
         }.build()
         val querySql = "SELECT id, name, health,unitTexture,mapX,mapY,unitType,tileMapId FROM things"
         gameResources.conn.createStatement().use { stmt ->
             val rs = stmt.executeQuery(querySql)
-            val thingBuilder = ThingBuilder.Builder().apply {
-                id = rs.getInt("id")
-                name = rs.getString("name")
-                health = rs.getFloat("health")
-                texture = texture(rs.getString("unitTexture"))
-                tileMap = mapManager.get(rs.getString("tileMapId"))?.tileMap
-                mapX = rs.getInt("mapX")
-                mapY = rs.getInt("mapY")
-                thingUnitType = enumValueOf(rs.getString("unitType"))
-                drop.add(thingBuilder1)
-            }.build()
             while (rs.next()) {
+                val thingBuilder = ThingBuilder.Builder().apply {
+                    id = rs.getInt("id")
+                    name = rs.getString("name")
+                    health = rs.getFloat("health")
+                    texturePath = rs.getString("unitTexture")
+                    tileMap = mapManager.get(rs.getString("tileMapId"))?.tileMap
+                    mapX = rs.getInt("mapX")
+                    mapY = rs.getInt("mapY")
+                    thingUnitType = enumValueOf(rs.getString("unitType"))
+                    drop.add(thingBuilder1)
+                }.build()
                 engines.createThingEntity(
                     thingBuilder
                 )
@@ -140,23 +142,24 @@ class MapScreen : ScreenAdapter() {
         gameResources.conn.createStatement().use { stmt ->
             val rs = stmt.executeQuery(querySql)
             while (rs.next()) {
-                val unitBuilder = UnitBuilder.Builder().apply {
+                val pawnBuilder = PawnBuilder.Builder().apply {
                     id = rs.getInt("id")
                     name = rs.getString("name")
                     age = rs.getInt("age")
-                    texture = texture(rs.getString("unitTexture"))
+                    texturePath = rs.getString("unitTexture")
                     tileMap = mapManager.get(rs.getString("tileMapId"))?.tileMap
                     mapX = rs.getInt("mapX")
                     mapY = rs.getInt("mapY")
                 }.build()
-                engines.createHumanEntity(
-                    unitBuilder
+                engines.createPawnEntity(
+                    pawnBuilder
                 )
             }
         }
         unitPortrait.setScaling(Scaling.fit)
 //        selectedUnit = units[0] // 默认选中一个（可选）
 //        updateUnitPortrait(selectedUnit)
+
     }
 
     override fun render(delta: Float) {
@@ -165,14 +168,16 @@ class MapScreen : ScreenAdapter() {
         gameResources.camera.update()
         gameResources.batch.projectionMatrix = gameResources.viewport.camera.combined
         mapManager.draw(delta)
-        val renderSystem = engines.unitEngine.getSystem(RenderSystem::class.java)
+        val renderSystem = engines.pawnEngine.getSystem(RenderSystem::class.java)
         renderSystem.debugMode = true
-        engines.unitEngine.update(delta)
+
+        engines.pawnEngine.update(delta)
         engines.thingEngine.update(delta)
 
         //在每帧渲染stage
         uiStage.act(Gdx.graphics.deltaTime.coerceAtMost(1 / 30f)) // 更新场景
         uiStage.draw()  // 绘制场景
+        mouseStateMachine.update()
     }
 
     override fun resize(width: Int, height: Int) {
@@ -184,17 +189,34 @@ class MapScreen : ScreenAdapter() {
 
 //    private fun addListener(listener: io.github.lv.screen.`<anonymous>`) {}
 
+    fun showDialog(dialogStage:Stage) {
+        // 保存原来的处理器
+       val previousProcessor = Gdx.input.inputProcessor
 
+
+        // 只让对话框接收输入
+        Gdx.input.inputProcessor = dialogStage
+
+
+        // 对话框关闭后恢复
+        // Gdx.input.setInputProcessor(previousProcessor);
+    }
     override fun hide() {
+        Gdx.input.inputProcessor = null  // 完全清除输入处理器
     }
 
     override fun pause() {
+        // 暂停时禁止所有输入
+        Gdx.input.inputProcessor = uiStage
     }
 
     override fun resume() {
+        // 恢复时重新设置
+        Gdx.input.inputProcessor = multiplexer
     }
 
     override fun dispose() {
         uiStage.dispose()
+        Gdx.input.inputProcessor = null
     }
 }

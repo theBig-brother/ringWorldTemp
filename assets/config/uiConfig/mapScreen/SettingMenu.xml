@@ -1,0 +1,21 @@
+<menu>
+    <id>Setting</id>
+    <name>Setting</name>
+    <items>
+        <item>
+            <id>new</id>
+            <name>New</name>
+            <action>newFileAction</action>
+        </item>
+        <item>
+            <id>open</id>
+            <name>Open</name>
+            <action>openFileAction</action>
+        </item>
+        <item>
+            <id>plugins</id>
+            <name>Plugins</name>
+            <subMenu>menu/pluginsMenu.xml</subMenu>
+        </item>
+    </items>
+</menu>

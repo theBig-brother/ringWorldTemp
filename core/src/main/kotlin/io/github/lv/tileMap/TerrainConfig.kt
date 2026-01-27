@@ -10,6 +10,7 @@ class TerrainConfig {
     val terrainSymbol: MutableMap<String, String> = mutableMapOf()
 
     @Initiate
+    @Suppress("unused")
     fun load() {
         val content: String = File("terrain.cfg").readText()
         val cleanedText = removeCommentLines(content)

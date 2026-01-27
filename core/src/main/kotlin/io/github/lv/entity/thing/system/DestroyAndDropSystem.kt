@@ -20,6 +20,8 @@ class DestroyAndDropSystem : EntitySystem() {
             val thingAppearanceComponent = entity.getComponent(ThingAppearanceComponent::class.java)
             val positionComponent = entity.getComponent(PositionComponent::class.java)
             if (thingInformationComponent.health < 0) {
+//                thingAppearanceComponent.dispose()
+                thingInformationComponent.isRemoved = true
                 engines.thingEngine.removeEntity(entity)
                 for (i in thingInformationComponent.drop) {
                     i.mapX = positionComponent.mapX

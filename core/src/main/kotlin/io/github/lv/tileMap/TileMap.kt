@@ -1,10 +1,8 @@
 package io.github.lv.tileMap
 
-import com.badlogic.ashley.core.Family
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import io.github.lv.Constant.TILE_PX
@@ -12,12 +10,7 @@ import io.github.lv.GameResources
 import io.github.lv.ai.FindPath
 import io.github.lv.ai.Graph
 import io.github.lv.entity.EngineContainer
-import io.github.lv.entity.PositionComponent
-import io.github.lv.entity.thing.component.ThingAppearanceComponent
-import io.github.lv.entity.thing.component.ThingInformationComponent
-import io.github.lv.io.github.lv.ui.GameAssets.texture
-import io.github.lv.ui.MouseState
-import io.github.lv.ui.OrderState
+import io.github.lv.ui.somethingElse.GameAssets.texture
 import java.io.File
 
 
@@ -28,8 +21,8 @@ class TileMap(
     val engines: EngineContainer,
     terrainConfig: TerrainConfig
 ) {
-//        val cobblesTexture: Texture by lazy { Texture("data/core/images/terrain/cobbles-keep.png") }
-val cobblesTexture=texture("data/core/images/terrain/cobbles-keep.png")
+    //        val cobblesTexture: Texture by lazy { Texture("data/core/images/terrain/cobbles-keep.png") }
+    val cobblesTexture = texture("data/core/images/terrain/cobbles-keep.png")
     var mapHeight: Int = 0 // 地图总行数
     var mapWidth: Int = 0
     var mapMatrix: Array<Array<TileNode?>> = arrayOf()
@@ -74,25 +67,20 @@ val cobblesTexture=texture("data/core/images/terrain/cobbles-keep.png")
                 }
             }
         }
-        gameResources.batch.draw(cobblesTexture,0f,0f,cobblesTexture.width.toFloat(),cobblesTexture.height.toFloat())
-
+        gameResources.batch.draw(
+            cobblesTexture,
+            0f,
+            0f,
+            cobblesTexture.width.toFloat(),
+            cobblesTexture.height.toFloat()
+        )
         gameResources.batch.end()
-        if (drawRect) {
-            gameResources.shapeRenderer.begin(ShapeRenderer.ShapeType.Line)  // 使用线条模式
-            // 设置ShapeRenderer的投影矩阵为相机的矩阵，应用相机的缩放、平移等变换
-            gameResources.shapeRenderer.projectionMatrix = gameResources.camera.combined
-            // 绘制精灵的边框，使用Sprite的x、y、width、height来表示边界
-            gameResources.shapeRenderer.rect(
-                startRect.x, startRect.y,
-                touchPos.x - startRect.x, touchPos.y - startRect.y
-            )
-            gameResources.shapeRenderer.end()
-        }
     }
 
-    var drawRect = false
     val mapWorldWidth = mapWidth * TILE_PX * 0.75f
     val mapWorldHeight = mapHeight * TILE_PX
+
+
     fun clampCamera() {
         // 1. 计算相机的可视窗口半宽/半高
 //        val halfViewWidth = camera.viewportWidth * camera.zoom / 2f
@@ -165,35 +153,8 @@ val cobblesTexture=texture("data/core/images/terrain/cobbles-keep.png")
             val deltaY = Gdx.input.deltaY * camera.zoom
             camera.translate(deltaX, deltaY, 0f)
         }
-        if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
 
-            if (gameResources.mouseState == MouseState.ORDER) {
-                //标记砍树
-                if (gameResources.orderState == OrderState.Chop) {
-                    touchPos.set(Gdx.input.x.toFloat(), Gdx.input.y.toFloat()) // Get where the touch happened on screen
-                    gameResources.viewport.unproject(touchPos)
-                    val entities =
-                        engines.thingEngine.getEntitiesFor(Family.all(ThingAppearanceComponent::class.java).get())
-                    for (entity in entities) {
-                        val thingInformationComponent = entity.getComponent(ThingInformationComponent::class.java)
-                        val positionComponent = entity.getComponent(PositionComponent::class.java)
-                        val x = mapToWorld(positionComponent.mapX, positionComponent.mapY).first
-                        val y = mapToWorld(positionComponent.mapX, positionComponent.mapY).second
-                        if (startRect.x <= x && x <= touchPos.x && touchPos.y <= y && y <= startRect.y) {
-                            thingInformationComponent.willDestroy = true
-                        }
-                    }
-                }
-            }
-            else if(gameResources.mouseState == MouseState.CONSTRUCTION){
-
-            }
-        }
     }
-
-    var startRect: Vector2 = Vector2()
-    val touchPos = Vector2() //防止频繁创建对象
-
 
     // 地图行 -> 渲染行（翻转）
     private fun toRenderRow(mapY: Int): Int = (mapHeight - 1 - mapY)
@@ -232,6 +193,11 @@ val cobblesTexture=texture("data/core/images/terrain/cobbles-keep.png")
         return mapX to mapY
     }
 
-    /** 边界检查也放这儿，别散落在各处 */
+    /** 边界检查也放这儿，别散落在各处
+     * @param mapX 地图有多少列
+     * @param mapY 地图有多少行
+     * @return 在不在边界里面
+     */
     fun inBounds(mapX: Int, mapY: Int): Boolean = mapX in 0 until mapWidth && mapY in 0 until mapHeight
+
 }
