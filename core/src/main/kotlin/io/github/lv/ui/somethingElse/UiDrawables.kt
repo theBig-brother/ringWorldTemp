@@ -2,8 +2,11 @@ package io.github.lv.ui.somethingElse
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import com.github.czyzby.autumn.annotation.Component
 
+@Component
 class UiDrawables() {
+
     val res = GameAssets
 
     // ====== 图片类（按钮皮肤等）======

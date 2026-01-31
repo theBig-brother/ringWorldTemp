@@ -1,6 +1,5 @@
 package io.github.lv.screen
 
-import com.badlogic.ashley.core.Family
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.ScreenAdapter
@@ -13,11 +12,7 @@ import com.github.czyzby.autumn.annotation.Initiate
 import com.github.czyzby.autumn.annotation.Inject
 import io.github.lv.Constant.TILE_PX
 import io.github.lv.GameResources
-import io.github.lv.entity.PositionComponent
-import io.github.lv.entity.thing.component.ThingAppearanceComponent
-import io.github.lv.entity.thing.component.ThingInformationComponent
 import io.github.lv.tileMap.MapManager
-import io.github.lv.entity.pawn.state.OrderState
 import io.github.lv.ui.ResearchUi
 
 @Component

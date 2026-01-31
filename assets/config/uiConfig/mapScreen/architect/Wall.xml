@@ -1,0 +1,9 @@
+<items>
+    <item>
+        <ZoneType>Wall</ZoneType>
+        <name>WallStone</name>
+        <texture>
+            data/core/images/terrain/walls/stone/wall-stone-base.png
+        </texture>
+    </item>
+</items>

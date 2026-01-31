@@ -9,9 +9,11 @@ import io.github.lv.Constant.TILE_PX
 import io.github.lv.GameResources
 import io.github.lv.ai.FindPath
 import io.github.lv.ai.Graph
-import io.github.lv.entity.EngineContainer
+import io.github.lv.ecs.EngineContainer
 import io.github.lv.ui.somethingElse.GameAssets.texture
+import ktx.collections.plusAssign
 import java.io.File
+import kotlin.math.abs
 
 
 class TileMap(
@@ -21,6 +23,7 @@ class TileMap(
     val engines: EngineContainer,
     terrainConfig: TerrainConfig
 ) {
+    var entityId:Long=0//好像没用
     //        val cobblesTexture: Texture by lazy { Texture("data/core/images/terrain/cobbles-keep.png") }
     val cobblesTexture = texture("data/core/images/terrain/cobbles-keep.png")
     var mapHeight: Int = 0 // 地图总行数
@@ -164,10 +167,13 @@ class TileMap(
 
     // 将六边形网格坐标转换为像素坐标
     fun mapToWorld(
-        mapX: Int,  // 列（x）
-        mapY: Int, // 行（y，向下）
+        mapX: Int?,  // 列（x）
+        mapY: Int?, // 行（y，向下）
         center: Boolean = true
     ): Pair<Float, Float> {
+        if (mapX == null || mapY == null) {
+            return Pair(0f, 0f)
+        }
         val renderRow = toRenderRow(mapY)  // ⭐ 关键翻转
         return if (center) {
             val x = mapX * TILE_PX * 0.75f + TILE_PX / 2f
@@ -199,5 +205,28 @@ class TileMap(
      * @return 在不在边界里面
      */
     fun inBounds(mapX: Int, mapY: Int): Boolean = mapX in 0 until mapWidth && mapY in 0 until mapHeight
+    fun inBounds(map: Pair<Int, Int>): Boolean = map.first in 0 until mapWidth && map.second in 0 until mapHeight
+    fun inBounds(map: Vector2): Boolean = map.x.toInt() in 0 until mapWidth && map.y.toInt() in 0 until mapHeight
 
+    /**
+     * @param mapX 地图有多少列
+     * @param mapY 地图有多少行
+     * @param radius 半径大小
+     * @return 储存相邻格子坐标的com.badlogic.gdx.utils.Array
+     */
+    fun findAdjacentCell(mapX: Int, mapY: Int, radius: Int): com.badlogic.gdx.utils.Array<Pair<Int, Int>> {
+        var centerQS: Pair<Int, Int>? = null
+        val nodes = com.badlogic.gdx.utils.Array<Pair<Int, Int>>()
+        if (inBounds(mapX, mapY)) {
+            centerQS = mapMatrix[mapY][mapX]?.qr
+        }
+        for (q in -radius..radius) {
+            for (r in -radius..radius) {
+                if (abs(q) <= radius && abs(r) <= radius && abs(-q - r) <= radius) {
+                    centerQS?.let { nodes += Pair(it.first + q, it.second + r) }
+                }
+            }
+        }
+        return nodes
+    }
 }

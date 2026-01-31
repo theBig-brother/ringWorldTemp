@@ -1,5 +1,9 @@
 <items>
     <item>
-
+        <ZoneType>Stockpile</ZoneType>
+        <name>Stockpile zone</name>
+         <texture>
+             data/core/images/terrain/reachmap/reach.png
+         </texture>
     </item>
 </items>

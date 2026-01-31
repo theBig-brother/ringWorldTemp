@@ -7,14 +7,17 @@ import com.badlogic.gdx.ai.fsm.State
 import com.badlogic.gdx.ai.msg.Telegram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
-import io.github.lv.entity.PositionComponent
-import io.github.lv.entity.thing.component.ThingAppearanceComponent
-import io.github.lv.entity.thing.component.ThingInformationComponent
-import io.github.lv.entity.pawn.state.OrderState
+import io.github.lv.ecs.components.PositionComponent
+import io.github.lv.ecs.pawn.state.OrderState
+import io.github.lv.ecs.thing.component.ThingAppearanceComponent
+import io.github.lv.ecs.thing.component.ThingInformationComponent
+import io.github.lv.ecs.zone.component.ZoneNode
+import io.github.lv.ui.somethingElse.GameAssets.texture
+import ktx.graphics.use
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import ktx.graphics.*
+import io.github.lv.tileMap.axialToOddQ
 
 enum class MouseState : State<MouseStateMachine> {
     //    ,ORDER,CONSTRUCTION,WALL,ZONE,FLOOR
@@ -25,7 +28,6 @@ enum class MouseState : State<MouseStateMachine> {
 
     },
     ORDER_RECT {
-
         override fun update(mouse: MouseStateMachine) {
             mouse.touchPos.set(
                 Gdx.input.x.toFloat(),
@@ -57,8 +59,12 @@ enum class MouseState : State<MouseStateMachine> {
                         positionComponent.mapY
                     )!!.second
                     if (rect.contains(x, y)) {
-                        thingInformationComponent.isPending = true
+                        mouse.waitForPending.add(entity)
+                        //TODO根据类型决定
                         thingInformationComponent.workType = mouse.gameResources.orderState
+                    } else {
+                        mouse.waitForPending.remove(entity)
+                        thingInformationComponent.workType = OrderState.UNKNOWN
                     }
                 }
             }
@@ -68,10 +74,62 @@ enum class MouseState : State<MouseStateMachine> {
 
     },
     WALL {
+        override fun update(mouse: MouseStateMachine) {
+            mouse.touchPos.set(
+                Gdx.input.x.toFloat(),
+                Gdx.input.y.toFloat()
+            )
+            mouse.gameResources.viewport.unproject(mouse.touchPos)
+            if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+                //画区域
 
+            }
+        }
     },
     ZONE {
-
+        override fun update(mouse: MouseStateMachine) {
+            mouse.touchPos.set(
+                Gdx.input.x.toFloat(),
+                Gdx.input.y.toFloat()
+            )
+            mouse.gameResources.viewport.unproject(mouse.touchPos)
+            val centerMapPos = mouse.constructPlan.currentZone?.tileMap?.worldToMap(mouse.touchPos.x, mouse.touchPos.y)
+            val zones = centerMapPos?.let {
+                mouse.constructPlan.currentZone?.tileMap?.findAdjacentCell(
+                    it.first,
+                    it.second,
+                    mouse.radius
+                )
+            }
+            mouse.gameResources.batch.use(mouse.gameResources.camera) {
+                val zoneTexture = texture(mouse.constructPlan.currentZone?.texturePath)
+                if (zones != null) {
+                    for (zone in zones) {
+                        val zonePos =
+                            axialToOddQ(zone?.let { it1 -> Pair(it1.first, it1.second) })
+                        val drawPos =
+                            mouse.constructPlan.currentZone?.tileMap?.mapToWorld(zonePos.first, zonePos.second)
+                        if (mouse.constructPlan.currentZone?.tileMap?.inBounds(zonePos) == true) {
+                            it.draw(
+                                zoneTexture,
+                                (drawPos?.first ?: -1f) - zoneTexture.width / 2,
+                                (drawPos?.second ?: -1f) - zoneTexture.height / 2.0f
+                            )
+                        }
+                    }
+                }
+            }
+            if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+                if (zones != null) {
+                    for (zone in zones) {
+                        val zonePos =
+                            axialToOddQ(zone?.let { it1 -> Pair(it1.first, it1.second) })
+                        val zoneNode = ZoneNode(zonePos.first, zonePos.second)
+                        mouse.constructPlan.currentZone!!.zones.add(zoneNode)
+                    }
+                }
+            }
+        }
     },
     FLOOR {
 

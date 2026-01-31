@@ -4,7 +4,7 @@ import com.badlogic.gdx.ScreenAdapter
 import com.github.czyzby.autumn.annotation.Component
 import com.github.czyzby.autumn.annotation.Inject
 import io.github.lv.GameResources
-import io.github.lv.entity.thing.component.ThingUnitType
+import io.github.lv.ecs.thing.component.ThingUnitType
 import io.github.lv.tileMap.MapManager
 import java.io.File
 import java.sql.DriverManager

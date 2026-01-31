@@ -16,7 +16,7 @@ import com.kotcrab.vis.ui.VisUI.SkinScale
 import java.io.File
 import io.github.lv.screen.GameScreen
 import com.github.czyzby.autumn.fcs.scanner.DesktopClassScanner
-import io.github.lv.entity.EngineSystem
+import io.github.lv.ecs.EngineSystem
 
 // ./gradlew :lwjgl3:run --stacktrace --info
 //./gradlew :lwjgl3:run --stacktrace --debug

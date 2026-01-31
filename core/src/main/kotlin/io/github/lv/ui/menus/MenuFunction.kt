@@ -4,12 +4,9 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.github.czyzby.autumn.annotation.Component
-import com.github.czyzby.autumn.annotation.Inject
 import com.kotcrab.vis.ui.widget.Menu
 import com.kotcrab.vis.ui.widget.MenuItem
 import com.kotcrab.vis.ui.widget.PopupMenu
-import io.github.lv.GameResources
-import io.github.lv.entity.EngineContainer
 import io.github.lv.ui.MapUI.Companion.worldPlaceholder
 import io.github.lv.ui.menus.MenuManager.Companion.bundle
 import io.github.lv.ui.menus.MenuManager.Companion.uiXmlPath

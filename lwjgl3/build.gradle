@@ -22,12 +22,12 @@ import io.github.fourlastor.construo.Target
 sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
 application.mainClass = 'io.github.lv.lwjgl3.Lwjgl3Launcher'
 eclipse.project.name = appName + '-lwjgl3'
-java.sourceCompatibility = 21
-java.targetCompatibility = 21
+java.sourceCompatibility = 25
+java.targetCompatibility = 25
 if (JavaVersion.current().isJava9Compatible()) {
-        compileJava.options.release.set(21)
+        compileJava.options.release.set(25)
 }
-kotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+kotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
 
 dependencies {
   implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"

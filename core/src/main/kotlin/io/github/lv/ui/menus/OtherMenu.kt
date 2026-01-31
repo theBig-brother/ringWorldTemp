@@ -14,18 +14,21 @@ import com.github.czyzby.autumn.annotation.Inject
 import com.kotcrab.vis.ui.layout.GridGroup
 import com.kotcrab.vis.ui.widget.*
 import io.github.lv.GameResources
-import io.github.lv.entity.EngineContainer
-import io.github.lv.entity.pawn.component.PathComponent
-import io.github.lv.entity.pawn.component.PawnAppearanceComponent
-import io.github.lv.entity.pawn.component.PawnInformationComponent
-import io.github.lv.entity.pawn.component.WorkComponent
+import io.github.lv.ecs.EngineContainer
+import io.github.lv.ecs.pawn.component.PathComponent
+import io.github.lv.ecs.pawn.component.PawnAppearanceComponent
+import io.github.lv.ecs.pawn.component.PawnInformationComponent
+import io.github.lv.ecs.pawn.component.WorkComponent
+import io.github.lv.pawn.WorkType
 import io.github.lv.screen.ResearchScreen
 import io.github.lv.ui.MapUI.Companion.worldPlaceholder
 import io.github.lv.ui.menus.MenuManager.Companion.uiXmlPath
 import io.github.lv.ui.menus.MenuManager.Companion.xmlReader
 import io.github.lv.ui.somethingElse.ColorDrawable
+import ktx.actors.onClick
 import ktx.scene2d.scene2d
 import ktx.scene2d.vis.*
+import ktx.actors.*
 
 @Component
 class OtherMenu : MenuBase {
@@ -41,7 +44,7 @@ class OtherMenu : MenuBase {
     @Inject
     override lateinit var actionRegistry: ActionRegistry
 
-    //    不能Inject
+    //不能Inject
     override lateinit var menu: Menu
 
     @Inject
@@ -85,12 +88,6 @@ class OtherMenu : MenuBase {
             Family.all(PawnAppearanceComponent::class.java, PathComponent::class.java).get()
         )
         val btnSize = 32f
-        val fileName = "workType"
-        val xmlFileName = fileName.removeSuffix(".xml") + ".xml"
-        val file = Gdx.files.internal("$uiXmlPath/$xmlFileName")
-        // 初始化 GridGroup (用于网格布局)
-        val rootElement = xmlReader.parse(file)
-
         val priorityRoot = scene2d.visTable {
             background = ColorDrawable(Color(0f, 0f, 0f, 0.6f)) // 半透明黑
             //priorityTitle
@@ -99,8 +96,8 @@ class OtherMenu : MenuBase {
                 gridGroup(btnSize * 2, 0f) { it ->
                     itemHeight = 32f
                     it.top().left().expand().fill().row()
-                    rootElement.children.forEachIndexed { index, itemElement ->
-                        val itemName = itemElement.getChildByName("workType").text
+                    WorkType.entries.forEachIndexed { index, itemElement ->
+                        val itemName = itemElement.toString()
                         val l = VisLabel(itemName, Align.center)
                         if (index % 2 == 0) {
                             addActor(l)
@@ -109,8 +106,8 @@ class OtherMenu : MenuBase {
                 }
                 gridGroup(btnSize * 2, 0f) { it ->
                     it.height(btnSize).top().left().expand().fill().padLeft(32f).row()
-                    rootElement.children.forEachIndexed { index, itemElement ->
-                        val itemName = itemElement.getChildByName("workType").text
+                    WorkType.entries.forEachIndexed { index, itemElement ->
+                        val itemName = itemElement.toString()
                         val l = VisLabel(itemName, Align.center)
                         if (index % 2 == 1) {
                             addActor(l)
@@ -126,7 +123,7 @@ class OtherMenu : MenuBase {
                     val pawnInformationComponent = entity.getComponent(PawnInformationComponent::class.java)
                     val pawnAppearanceComponent = entity.getComponent(PawnAppearanceComponent::class.java)
                     val workComponent = WorkComponent.mapper[entity]
-//                  priorityRow
+//priorityRow
                     visTable {
                         it.left().expandX().fillX().row()
                         //人物
@@ -139,13 +136,18 @@ class OtherMenu : MenuBase {
                             visLabel(pawnInformationComponent.name).apply {
                                 setSize(32f, btnSize)
                                 setAlignment(Align.center)
+                                //name.setFontScale(.5f)
                             }
                         }
                         //优先级
                         gridGroup(btnSize, 0f) { it ->
                             it.padLeft(16f).expand().fill()
-                            for (i in 0 until rootElement.children.size) {
-                                visTextButton(workComponent.workPriorities[i].priority.toString())
+                            for (i in 0 until WorkType.entries.size) {
+                                visTextButton(workComponent.workPriorities[i].priority.toString()).onClick {
+                                    txt = ((txt.toInt() + 1) % 5).toString()
+                                    workComponent.workPriorities[i].priority =
+                                        (workComponent.workPriorities[i].priority + 1) % 5
+                                }
                             }
                         }
                     }
@@ -158,7 +160,7 @@ class OtherMenu : MenuBase {
         worldPlaceholder.add(priorityRoot).top().left().expand().fillX()//这里expandX会导致居中
     }
 
-    fun openthePriorityMenu() {
+    fun openThePriorityMenu() {
         val entities = unitEngine.getEntitiesFor(
             Family.all(PawnAppearanceComponent::class.java, PathComponent::class.java).get()
         )

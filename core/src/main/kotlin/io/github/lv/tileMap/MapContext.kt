@@ -1,8 +1,7 @@
 package io.github.lv.tileMap
 
-import com.badlogic.ashley.core.Engine
 import io.github.lv.GameResources
-import io.github.lv.entity.EngineContainer
+import io.github.lv.ecs.EngineContainer
 
 class MapContext(
     val id: String,

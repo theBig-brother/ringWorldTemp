@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.czyzby.autumn.annotation.Component
 import com.github.czyzby.autumn.annotation.Inject
-import io.github.lv.entity.pawn.state.OrderState
+import io.github.lv.ecs.pawn.state.OrderState
 import java.sql.Connection
 
 @Component

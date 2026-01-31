@@ -8,14 +8,15 @@ import com.badlogic.gdx.math.Vector2
 import com.github.czyzby.autumn.annotation.Component
 import com.github.czyzby.autumn.annotation.Inject
 import io.github.lv.GameResources
-import io.github.lv.entity.EngineContainer
-import io.github.lv.entity.pawn.component.PathComponent
-import io.github.lv.entity.pawn.component.TargetPosition
+import io.github.lv.ecs.EngineContainer
+import io.github.lv.ecs.pawn.component.PathComponent
+import io.github.lv.ecs.pawn.component.TargetPosition
 import io.github.lv.tileMap.MapManager
 import io.github.lv.tileMap.TileMap
 import io.github.lv.tileMap.ConstructPlan
 import io.github.lv.ui.MapUI
-import io.github.lv.entity.pawn.state.OrderState
+import io.github.lv.ecs.pawn.state.OrderState
+import io.github.lv.ecs.thing.component.ThingInformationComponent
 
 @Component
 class OrderInputProcessor() : InputProcessor {
@@ -33,8 +34,8 @@ class OrderInputProcessor() : InputProcessor {
     private lateinit var mapUI: MapUI
 
     @Inject
-    private lateinit var engines: EngineContainer      // 或者直接 Inject Engine，看你怎么封装
-    private val unitEngine get() = engines.pawnEngine  // 和原来的参数一致
+    private lateinit var engineContainer: EngineContainer      // 或者直接 Inject Engine，看你怎么封装
+    private val unitEngine get() = engineContainer.pawnEngine  // 和原来的参数一致
 
     @Inject
     private lateinit var mapManager: MapManager
@@ -53,7 +54,24 @@ class OrderInputProcessor() : InputProcessor {
         this.getSelectedUnit = getSelectedUnit
     }
 
-    override fun scrolled(amountX: Float, amountY: Float): Boolean = false
+    override fun scrolled(amountX: Float, amountY: Float): Boolean {
+        return when (mouseStateMachine.mouseStateMachine.currentState) {
+            MouseState.ZONE -> {
+                if (amountY < 0) {
+                    mouseStateMachine.radius++
+                } else {
+                    if (mouseStateMachine.radius >0) {
+                        mouseStateMachine.radius--
+                    }
+                }
+                true
+            }
+
+            else -> {
+                false
+            }
+        }
+    }
 
     val touchCoords = Vector2()//防止频繁创建对象
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
@@ -66,14 +84,29 @@ class OrderInputProcessor() : InputProcessor {
         val (targetGridX, targetGridY) = tileMap.worldToMap(worldX, worldY)
         if (button == Input.Buttons.LEFT) {
             mouseStateMachine.startRect = touchCoords
-            if (mouseStateMachine.mouseStateMachine.currentState == MouseState.CONSTRUCTION) {
-                constructPlan.now?.tileMap = mapManager.current()?.tileMap
-                constructPlan.now?.mapX = targetGridX
-                constructPlan.now?.mapY = targetGridY
-                constructPlan.now?.let { engines.createThingEntity(it) }
+            when (mouseStateMachine.mouseStateMachine.currentState) {
+                MouseState.DEFAULT -> {
+                    mapUI.clearWorldPlaceholder()
+                    mapUI.rightPanelShow(false)
+                }
+
+                MouseState.ORDER_RECT -> {}
+                MouseState.CONSTRUCTION -> {
+                    constructPlan.currentThing?.tileMap = mapManager.current()?.tileMap
+                    constructPlan.currentThing?.mapX = targetGridX
+                    constructPlan.currentThing?.mapY = targetGridY
+                    constructPlan.currentThing?.let { engineContainer.createThingEntity(it) }
+                }
+
+                MouseState.WALL -> {}
+                MouseState.ZONE -> {
+
+                }
+
+                MouseState.FLOOR -> {
+
+                }
             }
-            mapUI.clearWorldPlaceholder()
-            mapUI.rightPanelShow(false)
             return true
         }
 
@@ -92,6 +125,29 @@ class OrderInputProcessor() : InputProcessor {
     }
 
     override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+        if (button == Input.Buttons.LEFT) {
+            when (mouseStateMachine.mouseStateMachine.currentState) {
+                MouseState.DEFAULT -> {}
+                MouseState.ORDER_RECT -> {
+                    mouseStateMachine.waitForPending.forEach {
+                        entity->
+                        val thingInformationComponent = entity.getComponent(ThingInformationComponent::class.java)
+                        thingInformationComponent.isPending=true
+                    }
+                }
+                MouseState.CONSTRUCTION -> {
+
+                }
+                MouseState.WALL -> {}
+                MouseState.ZONE -> {
+                    constructPlan.currentZone?.let { engineContainer.createZoneEntity(it) }
+                    constructPlan.currentZone?.tileMap?.entityId++//好像没用
+                    constructPlan.currentZone?.zones?.clear()
+                }
+
+                MouseState.FLOOR -> {}
+            }
+        }
         return false
     }
 

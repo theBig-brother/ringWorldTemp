@@ -16,10 +16,11 @@ import com.github.czyzby.autumn.annotation.Component
 import com.github.czyzby.autumn.annotation.Initiate
 import com.github.czyzby.autumn.annotation.Inject
 import io.github.lv.GameResources
-import io.github.lv.entity.EngineContainer
-import io.github.lv.entity.pawn.PawnBuilder
-import io.github.lv.entity.pawn.system.render.RenderSystem
-import io.github.lv.entity.thing.ThingBuilder
+import io.github.lv.ecs.EngineContainer
+import io.github.lv.ecs.EngineSystem
+import io.github.lv.ecs.pawn.PawnBuilder
+import io.github.lv.ecs.pawn.system.render.PawnRenderSystem
+import io.github.lv.ecs.thing.ThingBuilder
 import io.github.lv.tileMap.MapManager
 import io.github.lv.tileMap.inputProcessor.MapInputProcessor
 import io.github.lv.tileMap.inputProcessor.MouseStateMachine
@@ -35,10 +36,11 @@ class MapScreen : ScreenAdapter() {
     var music: Music? = null
 
     @Inject
-    private lateinit var engines: EngineContainer
+    lateinit var engineContainer: EngineContainer
 
     @Inject
     private lateinit var mapUI: MapUI
+
     // 直接注入组件化后的输入处理器
     @Inject
     private lateinit var orderInputProcessor: OrderInputProcessor
@@ -51,11 +53,13 @@ class MapScreen : ScreenAdapter() {
 
     @Inject
     private lateinit var mapManager: MapManager
+
     @Inject
     private lateinit var mouseStateMachine: MouseStateMachine
     val multiplexer = InputMultiplexer()        // 创建多重输入处理器
     val uiStage: Stage by lazy { Stage(ScreenViewport()) }
-//    val uiStage: Stage by lazy { stage(viewport=ScreenViewport()) }
+
+    //    val uiStage: Stage by lazy { stage(viewport=ScreenViewport()) }
     var selectedUnit: Entity? = null
     var unitPortrait: Image = Image()      // 先不给 drawable
 
@@ -87,8 +91,8 @@ class MapScreen : ScreenAdapter() {
         }
         multiplexer.addProcessor(uiStage)         // UI舞台优先
         multiplexer.addProcessor(pawnInputProcessor)        // 然后是ui输入
-        multiplexer.addProcessor(mapInputProcessor)        // 接着是地图输入
-        multiplexer.addProcessor(orderInputProcessor)     // 最后是游戏输入
+        multiplexer.addProcessor(orderInputProcessor)     // 接着是游戏输入
+        multiplexer.addProcessor(mapInputProcessor)        // 最后是地图输入
         Gdx.input.inputProcessor = multiplexer
         uiStage.isDebugAll = true
         mapUI.initializeUI(uiStage)
@@ -129,7 +133,7 @@ class MapScreen : ScreenAdapter() {
                     thingUnitType = enumValueOf(rs.getString("unitType"))
                     drop.add(thingBuilder1)
                 }.build()
-                engines.createThingEntity(
+                engineContainer.createThingEntity(
                     thingBuilder
                 )
             }
@@ -151,7 +155,7 @@ class MapScreen : ScreenAdapter() {
                     mapX = rs.getInt("mapX")
                     mapY = rs.getInt("mapY")
                 }.build()
-                engines.createPawnEntity(
+                engineContainer.createPawnEntity(
                     pawnBuilder
                 )
             }
@@ -168,11 +172,9 @@ class MapScreen : ScreenAdapter() {
         gameResources.camera.update()
         gameResources.batch.projectionMatrix = gameResources.viewport.camera.combined
         mapManager.draw(delta)
-        val renderSystem = engines.pawnEngine.getSystem(RenderSystem::class.java)
-        renderSystem.debugMode = true
-
-        engines.pawnEngine.update(delta)
-        engines.thingEngine.update(delta)
+        val pawnRenderSystem = engineContainer.pawnEngine.getSystem(PawnRenderSystem::class.java)
+        pawnRenderSystem.debugMode = true
+        engineContainer.update(delta)
 
         //在每帧渲染stage
         uiStage.act(Gdx.graphics.deltaTime.coerceAtMost(1 / 30f)) // 更新场景
@@ -189,9 +191,9 @@ class MapScreen : ScreenAdapter() {
 
 //    private fun addListener(listener: io.github.lv.screen.`<anonymous>`) {}
 
-    fun showDialog(dialogStage:Stage) {
+    fun showDialog(dialogStage: Stage) {
         // 保存原来的处理器
-       val previousProcessor = Gdx.input.inputProcessor
+        val previousProcessor = Gdx.input.inputProcessor
 
 
         // 只让对话框接收输入
@@ -201,6 +203,7 @@ class MapScreen : ScreenAdapter() {
         // 对话框关闭后恢复
         // Gdx.input.setInputProcessor(previousProcessor);
     }
+
     override fun hide() {
         Gdx.input.inputProcessor = null  // 完全清除输入处理器
     }

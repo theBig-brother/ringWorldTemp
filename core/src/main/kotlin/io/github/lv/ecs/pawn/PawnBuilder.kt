@@ -1,0 +1,27 @@
+package io.github.lv.ecs.pawn
+
+import io.github.lv.tileMap.TileMap
+
+data class PawnBuilder(
+    var id: Int,
+    var name: String,
+    var age: Int,
+    var texturePath: String,
+    var tileMap: TileMap?,
+    var mapX: Int,
+    var mapY: Int
+) {
+    class Builder {
+        var id: Int = 0
+        var name: String = ""
+        var age: Int = 100
+        var texturePath: String=""
+        var tileMap: TileMap? = null
+        var mapX: Int = 0
+        var mapY: Int = 0
+
+        fun build(): PawnBuilder {
+            return PawnBuilder(id, name, age, texturePath, tileMap, mapX, mapY)
+        }
+    }
+}

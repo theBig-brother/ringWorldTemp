@@ -1,47 +1,78 @@
 <items>
     <item>
-        Deconstruct
+        <name>Deconstruct</name>
+        <texture>
+            images/orders/Deconstruct.png
+        </texture>
     </item>
     <item>
-        Mine
+        <name>Mine</name>
+        <texture>images/orders/Mine.png</texture>
+
     </item>
     <item>
-        Haul
+        <name>Haul</name>
+        <texture>images/orders/Haul.png</texture>
+
     </item>
     <item>
-        Cut
+        <name>Cut</name>
+        <texture>images/orders/CutPlants.png</texture>
+
     </item>
     <item>
-        Harvest
+        <name>Harvest</name>
+        <texture>images/orders/HarvestPlants.png</texture>
+
     </item>
     <item>
-        Chop
+        <name>Chop</name>
+        <texture>images/orders/ChopWood.png</texture>
+
     </item>
     <item>
-        Hunt
+        <name>Hunt</name>
+        <texture>images/orders/Hunt.png</texture>
+
     </item>
     <item>
-        Slaughter
+        <name>Slaughter</name>
+        <texture>images/orders/Slaughter.png</texture>
+
     </item>
     <item>
-        Tame
+        <name>Tame</name>
+        <texture>images/orders/Tame.png</texture>
+
     </item>
     <item>
-        Uninstall
+        <name>Uninstall</name>
+        <texture>images/orders/Uninstall.png</texture>
+
     </item>
     <item>
-        Claim
+        <name>Claim</name>
+        <texture>images/orders/Claim.png</texture>
+
     </item>
     <item>
-        Strip
+        <name>Strip</name>
+        <texture>images/orders/Strip.png</texture>
+
     </item>
     <item>
-        Open
+        <name>Open</name>
+        <texture>images/orders/Open.png</texture>
+
     </item>
     <item>
-        Plan
+        <name>Plan</name>
+        <texture>images/orders/PlanOn.png</texture>
+
     </item>
     <item>
-        Remove_Plan
+        <name>Remove_Plan</name>
+        <texture>images/orders/PlanOff.png</texture>
+
     </item>
 </items>

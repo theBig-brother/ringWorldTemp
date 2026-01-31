@@ -27,7 +27,7 @@ object GameAssets{
     /** 缺资源时的占位纹理（建议用显眼颜色，方便你在开发期发现问题） */
     val placeholderTexture: Texture by lazy {
         val pm = Pixmap(2, 2, Pixmap.Format.RGBA8888)
-        pm.setColor(Color.MAGENTA)
+        pm.setColor(Color.GOLD)
         pm.fill()
         val tex = Texture(pm)
         pm.dispose()

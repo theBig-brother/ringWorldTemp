@@ -14,7 +14,7 @@ import com.kotcrab.vis.ui.widget.VisImage
 import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.VisTable
 import com.kotcrab.vis.ui.widget.VisTextButton
-import io.github.lv.entity.pawn.component.PawnAppearanceComponent
+import io.github.lv.ecs.pawn.component.PawnAppearanceComponent
 import io.github.lv.ui.somethingElse.UiDrawables
 import io.github.lv.ui.somethingElse.ColorDrawable
 

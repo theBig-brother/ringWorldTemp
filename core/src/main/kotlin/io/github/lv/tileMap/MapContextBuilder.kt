@@ -3,7 +3,7 @@ package io.github.lv.tileMap
 import com.github.czyzby.autumn.annotation.Component
 import com.github.czyzby.autumn.annotation.Inject
 import io.github.lv.GameResources
-import io.github.lv.entity.EngineContainer
+import io.github.lv.ecs.EngineContainer
 
 @Component
 class MapContextBuilder {
